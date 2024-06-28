@@ -21,7 +21,7 @@ module i2c_phy (
     output wire  scl_t,
 
     // Status and data
-    output wire phy_busy,
+    output wire phy_busy = 1'b0,
     output reg bus_control_reg,
     output reg phy_rx_data_reg,
     output reg [4:0] phy_state_reg,
@@ -61,7 +61,7 @@ module i2c_phy (
 
   reg [4:0] phy_state_next;
 
-  reg [16:0] delay_reg = 16'd0, delay_next;
+  reg [16:0] delay_reg = 17'd0, delay_next;
   reg delay_scl_reg = 1'b0, delay_scl_next;
   reg delay_sda_reg = 1'b0, delay_sda_next;
 
@@ -96,7 +96,7 @@ module i2c_phy (
       scl_o_next = 1'b1;
       delay_scl_next = 1'b0;
       delay_sda_next = 1'b0;
-      delay_next = 1'b0;
+      delay_next = 17'd0;
       phy_state_next = PHY_STATE_IDLE;
     end else if (delay_scl_reg) begin
       // wait for SCL to match command
@@ -120,7 +120,7 @@ module i2c_phy (
           if (phy_start_bit) begin
           $display("idle, ");
             sda_o_next = 1'b0;
-            delay_next = prescale;
+            delay_next = {1'b0, prescale};
             phy_state_next = PHY_STATE_START_1;
           end else begin
             phy_state_next = PHY_STATE_IDLE;
@@ -205,7 +205,7 @@ module i2c_phy (
 
           scl_o_next = 1'b1;
           delay_scl_next = 1'b1;
-          delay_next = prescale << 1;
+          delay_next = {1'b0, prescale} << 1;
           phy_state_next = PHY_STATE_WRITE_BIT_2;
         end
         PHY_STATE_WRITE_BIT_2: begin
@@ -303,6 +303,9 @@ module i2c_phy (
 
           bus_control_next = 1'b0;
           phy_state_next   = PHY_STATE_IDLE;
+        end
+        default: begin
+          phy_state_next = PHY_STATE_IDLE;
         end
       endcase
     end
