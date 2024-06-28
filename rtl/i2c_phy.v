@@ -1,6 +1,8 @@
+
+`timescale 1ns / 1ps
 module i2c_phy (
-    input  wire        clk,
-    input  wire        rst,
+    input wire clk,
+    input wire rst,
 
     // Control signals
     input wire phy_start_bit,
@@ -11,15 +13,18 @@ module i2c_phy (
     input wire phy_release_bus,
 
     // I2C interface
-    input  wire scl_i_reg,
-    output reg  scl_o_reg,
-    input  wire sda_i_reg,
-    output reg  sda_o_reg,
+    input  wire scl_i,
+    output wire  scl_o,
+    input  wire sda_i,
+    output wire  sda_o,
+    output wire  sda_t,
+    output wire  scl_t,
 
     // Status and data
     output wire phy_busy,
-    output reg  bus_control_reg,
-    output reg  phy_rx_data_reg,
+    output reg bus_control_reg,
+    output reg phy_rx_data_reg,
+    output reg [4:0] phy_state_reg,
 
     // Configuration
     input wire [15:0] prescale
@@ -46,19 +51,30 @@ module i2c_phy (
 
   // Internal registers
 
+  reg scl_o_reg;
+  reg scl_i_reg;
+  reg sda_i_reg;
+  reg sda_o_reg;
 
-  reg phy_rx_data_reg = 1'b0, phy_rx_data_next;
 
-reg [4:0] phy_state_reg = STATE_IDLE, phy_state_next;
+  reg phy_rx_data_next;
 
-reg [16:0] delay_reg = 16'd0, delay_next;
+  reg [4:0] phy_state_next;
+
+  reg [16:0] delay_reg = 16'd0, delay_next;
   reg delay_scl_reg = 1'b0, delay_scl_next;
   reg delay_sda_reg = 1'b0, delay_sda_next;
 
-  reg scl_o_reg = 1'b1, scl_o_next;
-  reg sda_o_reg = 1'b1, sda_o_next;
+  reg scl_o_next;
+  reg sda_o_next;
 
-  reg bus_control_reg = 1'b0, bus_control_next;
+  reg bus_control_next;
+
+  assign scl_o = scl_o_reg;
+  assign scl_t = scl_o_reg;
+  assign sda_o = sda_o_reg;
+  assign sda_t = sda_o_reg;
+
 
   always @* begin
     phy_state_next = PHY_STATE_IDLE;
@@ -97,10 +113,12 @@ reg [16:0] delay_reg = 16'd0, delay_next;
     end else begin
       case (phy_state_reg)
         PHY_STATE_IDLE: begin
+          $display("idle, simply wait");
           // bus idle - wait for start command
           sda_o_next = 1'b1;
           scl_o_next = 1'b1;
           if (phy_start_bit) begin
+          $display("idle, ");
             sda_o_next = 1'b0;
             delay_next = prescale;
             phy_state_next = PHY_STATE_START_1;
@@ -291,7 +309,7 @@ reg [16:0] delay_reg = 16'd0, delay_next;
   end
 
 
-always @(posedge clk) begin
+  always @(posedge clk) begin
     phy_state_reg <= phy_state_next;
 
     phy_rx_data_reg <= phy_rx_data_next;
@@ -311,15 +329,16 @@ always @(posedge clk) begin
     bus_control_reg <= bus_control_next;
 
     if (rst) begin
-        phy_state_reg <= PHY_STATE_IDLE;
-        delay_reg <= 16'd0;
-        delay_scl_reg <= 1'b0;
-        delay_sda_reg <= 1'b0;
-        scl_o_reg <= 1'b1;
-        sda_o_reg <= 1'b1;
-        bus_control_reg <= 1'b0;
+      phy_rx_data_reg <= 1'b0;
+      phy_state_reg <= PHY_STATE_IDLE;
+      delay_reg <= 16'd0;
+      delay_scl_reg <= 1'b0;
+      delay_sda_reg <= 1'b0;
+      scl_o_reg <= 1'b1;
+      sda_o_reg <= 1'b1;
+      bus_control_reg <= 1'b0;
     end
-end
+  end
 
 
 
