@@ -21,13 +21,13 @@ module i2c_phy (
     output wire  scl_t,
 
     // Status and data
-    output wire phy_busy = 1'b0,
+    output reg phy_busy = 1'b0,
     output reg bus_control_reg,
     output reg phy_rx_data_reg,
     output reg [4:0] phy_state_reg,
 
     // Configuration
-    input wire [15:0] prescale
+    input wire [16:0] prescale
 );
   localparam [4:0]
     PHY_STATE_IDLE = 5'd0,
@@ -113,14 +113,14 @@ module i2c_phy (
     end else begin
       case (phy_state_reg)
         PHY_STATE_IDLE: begin
-          $display("idle, simply wait");
+          //$display("idle, simply wait");
           // bus idle - wait for start command
           sda_o_next = 1'b1;
           scl_o_next = 1'b1;
           if (phy_start_bit) begin
-          $display("idle, ");
+          //$display("idle, ");
             sda_o_next = 1'b0;
-            delay_next = {1'b0, prescale};
+            delay_next = prescale;
             phy_state_next = PHY_STATE_START_1;
           end else begin
             phy_state_next = PHY_STATE_IDLE;
@@ -129,6 +129,8 @@ module i2c_phy (
         PHY_STATE_ACTIVE: begin
           // bus active
           if (phy_start_bit) begin
+            $display("start bit should have reset");
+
             sda_o_next = 1'b1;
             delay_next = prescale;
             phy_state_next = PHY_STATE_REPEATED_START_1;
@@ -145,6 +147,7 @@ module i2c_phy (
             delay_next = prescale;
             phy_state_next = PHY_STATE_STOP_1;
           end else begin
+            $display("Do nothing, leave things as is");
             phy_state_next = PHY_STATE_ACTIVE;
           end
         end
@@ -205,7 +208,7 @@ module i2c_phy (
 
           scl_o_next = 1'b1;
           delay_scl_next = 1'b1;
-          delay_next = {1'b0, prescale} << 1;
+          delay_next = prescale << 1;
           phy_state_next = PHY_STATE_WRITE_BIT_2;
         end
         PHY_STATE_WRITE_BIT_2: begin
@@ -334,7 +337,7 @@ module i2c_phy (
     if (rst) begin
       phy_rx_data_reg <= 1'b0;
       phy_state_reg <= PHY_STATE_IDLE;
-      delay_reg <= 16'd0;
+      delay_reg <= 17'd0;
       delay_scl_reg <= 1'b0;
       delay_sda_reg <= 1'b0;
       scl_o_reg <= 1'b1;
