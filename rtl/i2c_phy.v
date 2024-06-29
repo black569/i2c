@@ -14,11 +14,11 @@ module i2c_phy (
 
     // I2C interface
     input  wire scl_i,
-    output wire  scl_o,
+    output wire scl_o,
     input  wire sda_i,
-    output wire  sda_o,
-    output wire  sda_t,
-    output wire  scl_t,
+    output wire sda_o,
+    output wire sda_t,
+    output wire scl_t,
 
     // Status and data
     output reg phy_busy = 1'b0,
@@ -118,7 +118,7 @@ module i2c_phy (
           sda_o_next = 1'b1;
           scl_o_next = 1'b1;
           if (phy_start_bit) begin
-          //$display("idle, ");
+            //$display("idle, ");
             sda_o_next = 1'b0;
             delay_next = prescale;
             phy_state_next = PHY_STATE_START_1;
