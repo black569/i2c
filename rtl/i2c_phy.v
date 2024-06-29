@@ -129,7 +129,7 @@ module i2c_phy (
         PHY_STATE_ACTIVE: begin
           // bus active
           if (phy_start_bit) begin
-            $display("start bit should have reset");
+            //$display("start bit should have reset");
 
             sda_o_next = 1'b1;
             delay_next = prescale;
@@ -147,7 +147,7 @@ module i2c_phy (
             delay_next = prescale;
             phy_state_next = PHY_STATE_STOP_1;
           end else begin
-            $display("Do nothing, leave things as is");
+            //$display("Do nothing, leave things as is");
             phy_state_next = PHY_STATE_ACTIVE;
           end
         end

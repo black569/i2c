@@ -363,7 +363,7 @@ always @* begin
                 s_axis_cmd_ready_next = 1'b1;
 
                 if (s_axis_cmd_ready & s_axis_cmd_valid) begin
-                  $display("ready and valid");
+                  //$display("ready and valid");
                     // command valid
                     if (s_axis_cmd_read ^ (s_axis_cmd_write | s_axis_cmd_write_multiple)) begin
                         // read or write command
@@ -398,23 +398,23 @@ always @* begin
                     end
                 end else begin
                     if (stop_on_idle & s_axis_cmd_ready & ~s_axis_cmd_valid) begin
-                  $display("Not here");
+                  //$display("Not here");
                         // no waiting command and stop_on_idle selected, issue stop condition
                         phy_stop_bit = 1'b1;
                         state_next = STATE_IDLE;
                     end else begin
-                  $display("From read to write?");
+                  //$display("From read to write?");
                         state_next = STATE_ACTIVE_WRITE;
                     end
                 end
             end
             STATE_ACTIVE_READ: begin
-              $display("State active read");
+              //$display("State active read");
                 // line active to current address
                 s_axis_cmd_ready_next = ~m_axis_data_tvalid;
 
                 if (s_axis_cmd_ready & s_axis_cmd_valid) begin
-                  $display("ready and valid ative read");
+                  //$display("ready and valid ative read");
                     // command valid
                     if (s_axis_cmd_read ^ (s_axis_cmd_write | s_axis_cmd_write_multiple)) begin
                         // read or write command
@@ -447,7 +447,7 @@ always @* begin
                             state_next = STATE_READ;
                         end
                     end else if (s_axis_cmd_stop && !(s_axis_cmd_read || s_axis_cmd_write || s_axis_cmd_write_multiple)) begin
-                  $display("Not here active read");
+                  //$display("Not here active read");
                         // stop command
                         // write nack for previous read
                         phy_write_bit = 1'b1;
@@ -471,8 +471,8 @@ always @* begin
 
                         state_next = STATE_STOP;
                     end else begin
-                  $display("Active Read: conditions: %d, %d",s_axis_cmd_ready,~s_axis_cmd_valid);
-$display("m_axis_data_tvalid %d ",  m_axis_data_tvalid);
+                  //$display("Active Read: conditions: %d, %d",s_axis_cmd_ready,~s_axis_cmd_valid);
+//$display("m_axis_data_tvalid %d ",  m_axis_data_tvalid);
                         state_next = STATE_ACTIVE_READ;
                     end
                 end
@@ -509,9 +509,9 @@ $display("m_axis_data_tvalid %d ",  m_axis_data_tvalid);
                     phy_write_bit = 1'b1;
                     phy_tx_data = mode_read_reg;
                     state_next = STATE_ADDRESS_1;
-                  $display("should be  %d",mode_read_reg);
+                  //$display("should be  %d",mode_read_reg);
                 end else begin
-                  $display("should be 0 %d",sda_o);
+                  //$display("should be 0 %d",sda_o);
                     // read ack bit
                     phy_read_bit = 1'b1;
                     state_next = STATE_ADDRESS_2;
