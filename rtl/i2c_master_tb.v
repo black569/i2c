@@ -164,117 +164,108 @@ UUT (
     end
   endtask
 
+task send_byte;
+  input [7:0] byte_to_send;
+  integer i;
+  begin
+    for (i = 7; i >= 0; i = i - 1) begin
+      sda2 = byte_to_send[i];
+      @(negedge scl_o);
+    end
+  end
+
+  endtask
+
+   task wait_for_ready;
+    begin
+      $display("Waiting for ready");
+      @(posedge s_axis_cmd_ready);
+      #CLK_PERIOD;
+    end
+  endtask
+
+   task send_ack;
+    begin
+      @(negedge scl_o);
+      sda2 = 0;
+      #CLK_PERIOD;
+      @(negedge scl_o);
+      sda2 = 1;
+    end
+  endtask
+
+
 initial begin
   $display("Starting I2C Master test");
   initialize_testbench;
 
-  // Set address to 00000001, command to write, and data to 11111111
+  // Set address to 00000001, command to write
   i2c_start(7'b0000001, 0);
   s_axis_data_tdata = 8'b10100101;
   s_axis_data_tvalid = 1;
-  $display("Waiting for ready");
+
   // Wait for NACK
   @(posedge missed_ack);
   $display("NACK expected!");
+  
+  wait_for_ready();
 
-  @(posedge s_axis_cmd_ready);
-  #(CLK_PERIOD); // let it cook
+  // Second write attempt
   i2c_start(7'b0000001, 0);
   s_axis_data_tdata = 8'b10101111;
   s_axis_data_tvalid = 1;
-  $display("Waiting for ready round 2");
   
   // Hardcoding the acknowledgement
-  repeat(8) @(negedge scl_o);
+  repeat(7) @(negedge scl_o);
+
   // Send ACK
-  sda2 = 0;
-  #(CLK_PERIOD); // let it cook
-  
-  @(negedge scl_o);
-  sda2 = 1;
-  
-  @(negedge scl_o);
- 
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  #(CLK_PERIOD); // let it cook
-  sda2 = 0;
-  s_axis_cmd_start = 0;
-  s_axis_cmd_write = 0;
-  s_axis_cmd_valid = 0;
-  stop_on_idle=1;
+  send_ack();
+  @(negedge scl_o); // let 1 pass through
+  send_byte(8'b01111111);
+  stop_on_idle = 1;
 
-
-  @(negedge scl_o);
-  #(CLK_PERIOD); // let it cook
-
-  sda2 = 1;
-
-  @(posedge s_axis_cmd_ready);
+  wait_for_ready();
   #1000;
-  s_axis_cmd_address = 7'b0000001;
-  //start is implied
-  //s_axis_cmd_start = 0;
-  s_axis_cmd_read = 1;
-  s_axis_cmd_valid = 1;
+
+  // Start is implied
   s_axis_data_tdata = 8'b10101111;
   s_axis_data_tvalid = 1;
-  $display("Now doing a read.");
-  
+  i2c_start(7'b0000001, 1);
+
+  $display("Now doing a read");
+
   // Hardcoding the acknowledgement
-  @(negedge sda_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
+  repeat(7) @(negedge scl_o);
+
   // Send ACK
-  sda2 = 0;
-  $display("Send ACK.");
-  #(CLK_PERIOD); // let it cook
-  
   s_axis_cmd_valid = 0;
-  @(negedge scl_o);
-  $display("test 1");
-  
-  @(negedge scl_o);
-  sda2 = 1;
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
-  @(negedge scl_o);
+  send_ack();
+  send_byte(8'b01111111);
+
+  // Continue with next read (does not require i2c_start condition)
+  s_axis_cmd_read = 1;
   s_axis_cmd_valid = 1;
-  m_axis_data_tready = 1;//prepare readyness
+  m_axis_data_tready = 1; // prepare readiness
+
   @(negedge scl_o);
-  #(CLK_PERIOD); // let it cook
-  stop_on_idle=1;
-  //@(negedge scl_o);
-  @(posedge m_axis_data_tvalid);
-  $display("received m_axis_data_tdata %d",m_axis_data_tdata);
-  $display("received readiness %d",s_axis_cmd_ready);
-  @(posedge scl_o);
   if (sda_wire) begin
-   $fatal(1,"Got NACK from master") ;
+    $fatal(1, "Got NACK from master");
   end
-//pretend we got data
-  @(posedge s_axis_cmd_ready);
-  s_axis_cmd_valid = 0;//now stop
-  @(posedge s_axis_cmd_ready);
-  // Add a timeout
+
+  $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
+  #(CLK_PERIOD);
+  stop_on_idle = 1;
+  @(posedge m_axis_data_tvalid);
+  $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
+  $display("Received readiness %d", s_axis_cmd_ready);
+  s_axis_cmd_valid = 0; // now stop
+
+  wait_for_ready();
   #1000;
+
   $display("Simulation ended due to timeout");
   $finish;
 end
-  endmodule
+endmodule
+
 
