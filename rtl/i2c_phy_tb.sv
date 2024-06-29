@@ -14,10 +14,12 @@ module i2c_phy_tb;
   reg phy_read_bit = 0;
   reg phy_tx_data = 0;
   reg phy_release_bus = 0;
-  wire scl_i = 1;
+  reg scl_i = 1;//Technically they are not registers but in testbench we need to store them somewhere
   wire scl_o;
-  wire sda_i = 1;
+  reg sda_i = 1;
   wire sda_o;
+  reg sda2=1;//dummy registers
+  reg scl2=1;
   wire sda_t;
   wire scl_t;
   wire phy_busy;
@@ -27,6 +29,35 @@ module i2c_phy_tb;
 
   // Clock generation
   always #(CLK_PERIOD / 2) clk <= ~clk;
+
+ // Tri-state buffer modeling
+  wire scl_wire;
+  wire sda_wire;
+
+  reg scl_i_reg_tb, sda_i_reg_tb;
+  // Model pull-up resistors with weak pull-ups
+  pullup(scl_wire);
+  pullup (sda_wire);
+
+  // Model open-drain outputs
+  assign scl_wire = (scl_o & scl2) ? 1'bz : 1'b0;
+  assign sda_wire = (sda_o & sda2) ? 1'bz : 1'b0;
+
+  // Sample the bus with non-blocking assignments to avoid race conditions
+  always @(posedge clk or posedge rst) begin
+      if (rst) begin
+          scl_i_reg_tb <= 1'b1;
+          sda_i_reg_tb <= 1'b1;
+      end else begin
+          scl_i_reg_tb <= scl_wire;
+          sda_i_reg_tb <= sda_wire;
+          
+          // Assert that sda_i_reg is not X
+          if(sda_i_reg_tb === 1'bx)  $fatal(1,"sda_i_reg is X at time %t", $time);
+      end
+  end
+
+
 
   // Instantiate the i2c_phy module
   i2c_phy uut (
@@ -38,9 +69,9 @@ module i2c_phy_tb;
       .phy_read_bit(phy_read_bit),
       .phy_tx_data(phy_tx_data),
       .phy_release_bus(phy_release_bus),
-      .scl_i(scl_i),
+      .scl_i(scl_i_reg_tb),
       .scl_o(scl_o),
-      .sda_i(sda_i),
+      .sda_i(sda_i_reg_tb),
       .sda_o(sda_o),
       .sda_t(sda_t),
       .scl_t(scl_t),
@@ -51,18 +82,7 @@ module i2c_phy_tb;
       .prescale(17'd3)
   );
 
-  // Simulate I2C bus behavior
-  //always @(posedge clk) begin
-  //  if (!scl_t) scl_i <= scl_o;
-  //  if (!sda_t) sda_i <= sda_o;
-  //end
-  wire sda_pin;
-  wire scl_pin;
-  assign sda_pin = sda_o ? 1'bz : 1'b0;
-  assign scl_pin = scl_o ? 1'bz : 1'b0;
-  assign sda_i   = sda_pin;
-  assign scl_i   = scl_pin;
-
+// Input to the module
   // Test procedure
   initial begin
     // Initialize inputs
@@ -96,40 +116,50 @@ module i2c_phy_tb;
     phy_write_bit = 1;
     phy_tx_data   = 0;
     $display("Sending a 00000001");
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  // Assuming PHY_STATE_ACTIVE is 5'd1
     phy_write_bit = 1;
     phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  // Assuming PHY_STATE_ACTIVE is 5'd1
     phy_write_bit = 1;
     phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 1;
     phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 1;
     phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 1;
     phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 1;
     phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 1;
     phy_tx_data   = 1;
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 1;
     phy_tx_data   = 1;  //READ =1
     $display("send write value");
-    #(CLK_PERIOD * 3 * 4);
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
     phy_write_bit = 0;
     phy_read_bit  = 1;
-    //do not Send acknoledgement
-    #(CLK_PERIOD * 3 * 4);
-    $display("Reading value %d", phy_rx_data_reg);
+    sda2=0;
+    #(CLK_PERIOD*2);
+    wait (phy_state_reg == 5'd1);  
+    sda2=1;
+    $display("Reading value %d", phy_rx_data_reg); //since we sent a 0 this is an ACK
+    #(CLK_PERIOD * 140);
+    sda2=1;
     //rx should be 1 since we have not send anything this is a NACK
     // End simulation
     $finish;
