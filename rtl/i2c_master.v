@@ -593,29 +593,29 @@ always @* begin
     end
 end
 
-i2c_phy phy_instance (
-    // Control signals
-    .phy_start_bit(phy_start_bit),
-    .phy_stop_bit(phy_stop_bit),
-    .phy_write_bit(phy_write_bit),
-    .phy_read_bit(phy_read_bit),
-    .phy_tx_data(phy_tx_data),
-    .phy_release_bus(phy_release_bus),
+i2c_phy phy_instance 
+(
+      .clk(clk),
+      .rst(rst),
+      .phy_start_bit(phy_start_bit),
+      .phy_stop_bit(phy_stop_bit),
+      .phy_write_bit(phy_write_bit),
+      .phy_read_bit(phy_read_bit),
+      .phy_tx_data(phy_tx_data),
+      .phy_release_bus(phy_release_bus),
+      .scl_i(scl_i),
+      .scl_o(scl_o),
+      .sda_i(sda_i),
+      .sda_o(sda_o),
+      .sda_t(sda_t),
+      .scl_t(scl_t),
+      .phy_busy(phy_busy),
+      .bus_control_reg(bus_control_reg),
+      .phy_rx_data_reg(phy_rx_data_reg),
+      .phy_state_reg(phy_state_reg),
+      .prescale(17'd3)
+  );
 
-    // I2C interface
-    .scl_i_reg,
-    .scl_o_reg,
-    .sda_i_reg,
-    .sda_o_reg,
-
-    // Status and data
-    .phy_busy(phy_busy),
-    .bus_control_reg,
-    .phy_rx_data_reg,
-
-    // Configuration
-    .prescale(prescale)
-);
 
 always @(posedge clk) begin
     state_reg <= state_next;

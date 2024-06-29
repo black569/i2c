@@ -81,90 +81,127 @@ module i2c_phy_tb;
       .phy_state_reg(phy_state_reg),
       .prescale(17'd3)
   );
+task initialize;
+    begin
+      rst = 1;
+      phy_start_bit = 0;
+      phy_stop_bit = 0;
+      phy_write_bit = 0;
+      phy_read_bit = 0;
+      phy_tx_data = 0;
+      phy_release_bus = 0;
+    end
+  endtask
 
-// Input to the module
-  // Test procedure
+  task reset;
+    begin
+      rst = 1;
+      #(CLK_PERIOD * 5);
+      rst = 0;
+      #(CLK_PERIOD * 5);
+    end
+  endtask
+  task write_operation(input tx_data);
+    begin
+      wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
+      phy_write_bit = 1;
+      phy_tx_data = tx_data;
+      #(CLK_PERIOD * 2);
+    end
+  endtask
+  task read_operation;
+    begin
+      wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
+      phy_write_bit = 0;
+      phy_read_bit = 1;
+      #(CLK_PERIOD * 2);
+    end
+  endtask
+
+  task wait_for_idle;
+    begin
+      wait (phy_state_reg == 5'd0);  // Assuming PHY_STATE_IDLE is 5'd0
+    end
+  endtask
+
+  // Specific test scenarios
+  task test_write_byte;
+    begin
+      $display("Testing write byte operation");
+      phy_start_bit = 1;
+      #(CLK_PERIOD);
+      phy_start_bit = 0;
+
+      // Write byte 0x81 (10000001)
+      write_operation(1);
+      write_operation(0);
+      write_operation(0);
+      write_operation(0);
+      write_operation(0);
+      write_operation(0);
+      write_operation(0);
+      write_operation(1);
+
+      // Read ACK
+      //Send ACK
+      sda2=0;
+      read_operation;
+      wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
+      sda2=1;//pull sda2 back up
+      if (phy_rx_data_reg!=0)
+      $finish("Expecting ACK but found NACK: %d ", phy_rx_data_reg);
+    end
+  endtask
+
+  task test_read_byte;
+    begin
+      $display("Testing read byte operation");
+      phy_start_bit = 1;
+      #(CLK_PERIOD);
+      phy_start_bit = 0;
+
+      // Send read command (e.g., 0xA1 for read)
+      write_operation(1);
+      write_operation(0);
+      write_operation(1);
+      write_operation(0);
+      write_operation(0);
+      write_operation(0);
+      write_operation(0);
+      write_operation(1);
+
+      // Read ACK
+      read_operation;
+
+      // Read byte
+      repeat(8) begin
+        read_operation;
+      end
+
+      // Send NACK
+      write_operation(1);
+    end
+  endtask
+
+  // Main test procedure
   initial begin
-    // Initialize inputs
-    //$display("Starting");
-    rst = 1;
-    phy_start_bit = 0;
-    phy_stop_bit = 0;
-    phy_write_bit = 0;
-    phy_read_bit = 0;
-    phy_tx_data = 0;
-    phy_release_bus = 0;
+    $display("Starting I2C PHY Test");
+    initialize;
+    $display("Initialized");
+    reset;
+    $display("reseted");
 
-    // Wait for a few clock cycles and release reset
-    //$display("before wait");
-    #(CLK_PERIOD * 5);
-    //$display("before reset");
-    rst = 0;
-    #(CLK_PERIOD * 5);
+    $display("Test write");
+    test_write_byte;
+    $display("Test idle?");
+    //wait_for_idle;
 
-    //$display("before set");
-    // Assert phy_start_bit
-    phy_start_bit = 1;
-    #(CLK_PERIOD);
-    phy_start_bit = 0;
+    //test_read_byte;
+    //wait_for_idle;
 
-    // Wait until phy_state becomes active (PHY_STATE_ACTIVE)
-    //$display("wiating when phy becomes active");
-    wait (phy_state_reg == 5'd1);  // Assuming PHY_STATE_ACTIVE is 5'd1
-    $display("PHY_STATE_ACTIVE reached at time %t", $time);
-
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    $display("Sending a 00000001");
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  // Assuming PHY_STATE_ACTIVE is 5'd1
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  // Assuming PHY_STATE_ACTIVE is 5'd1
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 1;
-    phy_tx_data   = 0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 1;
-    phy_tx_data   = 1;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 1;
-    phy_tx_data   = 1;  //READ =1
-    $display("send write value");
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    phy_write_bit = 0;
-    phy_read_bit  = 1;
-    sda2=0;
-    #(CLK_PERIOD*2);
-    wait (phy_state_reg == 5'd1);  
-    sda2=1;
-    $display("Reading value %d", phy_rx_data_reg); //since we sent a 0 this is an ACK
-    #(CLK_PERIOD * 140);
-    sda2=1;
-    //rx should be 1 since we have not send anything this is a NACK
-    // End simulation
+    $display("I2C PHY Test Completed");
     $finish;
   end
-
   // Optional: Dump waveforms
   initial begin
     $dumpfile("i2c_phy_tb.vcd");
