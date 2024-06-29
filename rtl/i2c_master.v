@@ -181,20 +181,20 @@ scl_o should not be connected directly to scl_i, only via AND logic or a tristat
 I/O pin.  This would prevent devices from stretching the clock period.
 
 */
-
 localparam [4:0]
-    STATE_IDLE = 4'd0,
-    STATE_ACTIVE_WRITE = 4'd1,
-    STATE_ACTIVE_READ = 4'd2,
-    STATE_START_WAIT = 4'd3,
-    STATE_START = 4'd4,
-    STATE_ADDRESS_1 = 4'd5,
-    STATE_ADDRESS_2 = 4'd6,
-    STATE_WRITE_1 = 4'd7,
-    STATE_WRITE_2 = 4'd8,
-    STATE_WRITE_3 = 4'd9,
-    STATE_READ = 4'd10,
-    STATE_STOP = 4'd11;
+    STATE_IDLE = 5'd0,
+    STATE_ACTIVE_WRITE = 5'd1,
+    STATE_ACTIVE_READ = 5'd2,
+    STATE_START_WAIT = 5'd3,
+    STATE_START = 5'd4,
+    STATE_ADDRESS_1 = 5'd5,
+    STATE_ADDRESS_2 = 5'd6,
+    STATE_WRITE_1 = 5'd7,
+    STATE_WRITE_2 = 5'd8,
+    STATE_WRITE_3 = 5'd9,
+    STATE_READ = 5'd10,
+    STATE_STOP = 5'd11;
+
 
 reg [4:0] state_reg = STATE_IDLE, state_next;
 
@@ -216,7 +216,7 @@ localparam [4:0]
     PHY_STATE_STOP_2 = 5'd14,
     PHY_STATE_STOP_3 = 5'd15;
 
-reg [4:0] phy_state_reg = STATE_IDLE;
+wire [4:0] phy_state_reg;
 
 reg phy_start_bit;
 reg phy_stop_bit;
@@ -226,7 +226,8 @@ reg phy_release_bus;
 
 reg phy_tx_data;
 
-reg phy_rx_data_reg = 1'b0, phy_rx_data_next;
+//reg phy_rx_data_reg = 1'b0, phy_rx_data_next;
+wire phy_rx_data_reg;
 
 reg [6:0] addr_reg = 7'd0, addr_next;
 reg [7:0] data_reg = 8'd0, data_next;
@@ -257,7 +258,9 @@ reg last_scl_i_reg = 1'b1;
 reg last_sda_i_reg = 1'b1;
 
 reg busy_reg = 1'b0;
-//reg bus_active_reg = 1'b0;
+reg bus_active_reg = 1'b0;
+wire bus_control_reg;
+wire phy_busy;
 //reg bus_control_reg = 1'b0, bus_control_next;
 reg missed_ack_reg = 1'b0, missed_ack_next;
 
@@ -269,14 +272,14 @@ assign m_axis_data_tdata = m_axis_data_tdata_reg;
 assign m_axis_data_tvalid = m_axis_data_tvalid_reg;
 assign m_axis_data_tlast = m_axis_data_tlast_reg;
 
-assign scl_o = scl_o_reg;
-assign scl_t = scl_o_reg;
-assign sda_o = sda_o_reg;
-assign sda_t = sda_o_reg;
+//assign scl_o = scl_o_reg;
+//assign scl_t = scl_o_reg;
+//assign sda_o = sda_o_reg;
+//assign sda_t = sda_o_reg;
 
 assign busy = busy_reg;
 assign bus_active = bus_active_reg;
-//assign bus_control = bus_control_reg;
+assign bus_control = bus_control_reg;
 assign missed_ack = missed_ack_reg;
 
 wire scl_posedge = scl_i_reg & ~last_scl_i_reg;
@@ -360,6 +363,7 @@ always @* begin
                 s_axis_cmd_ready_next = 1'b1;
 
                 if (s_axis_cmd_ready & s_axis_cmd_valid) begin
+                  $display("ready and valid");
                     // command valid
                     if (s_axis_cmd_read ^ (s_axis_cmd_write | s_axis_cmd_write_multiple)) begin
                         // read or write command
@@ -394,19 +398,23 @@ always @* begin
                     end
                 end else begin
                     if (stop_on_idle & s_axis_cmd_ready & ~s_axis_cmd_valid) begin
+                  $display("Not here");
                         // no waiting command and stop_on_idle selected, issue stop condition
                         phy_stop_bit = 1'b1;
                         state_next = STATE_IDLE;
                     end else begin
+                  $display("From read to write?");
                         state_next = STATE_ACTIVE_WRITE;
                     end
                 end
             end
             STATE_ACTIVE_READ: begin
+              $display("State active read");
                 // line active to current address
                 s_axis_cmd_ready_next = ~m_axis_data_tvalid;
 
                 if (s_axis_cmd_ready & s_axis_cmd_valid) begin
+                  $display("ready and valid ative read");
                     // command valid
                     if (s_axis_cmd_read ^ (s_axis_cmd_write | s_axis_cmd_write_multiple)) begin
                         // read or write command
@@ -421,6 +429,7 @@ always @* begin
                             // address or mode mismatch or forced start - repeated start
 
                             // write nack for previous read
+                            $display("mode mismatch forced restart, write nack");
                             phy_write_bit = 1'b1;
                             phy_tx_data = 1'b1;
                             // repeated start bit
@@ -428,6 +437,7 @@ always @* begin
                         end else begin
                             // address and mode match
 
+                            $display("sending ack and continue with next read");
                             // write ack for previous read
                             phy_write_bit = 1'b1;
                             phy_tx_data = 1'b0;
@@ -437,6 +447,7 @@ always @* begin
                             state_next = STATE_READ;
                         end
                     end else if (s_axis_cmd_stop && !(s_axis_cmd_read || s_axis_cmd_write || s_axis_cmd_write_multiple)) begin
+                  $display("Not here active read");
                         // stop command
                         // write nack for previous read
                         phy_write_bit = 1'b1;
@@ -444,18 +455,24 @@ always @* begin
                         // send stop bit
                         state_next = STATE_STOP;
                     end else begin
+                  $display("active read: invalid or unspecified - ignore.. ?");
                         // invalid or unspecified - ignore
                         state_next = STATE_ACTIVE_READ;
                     end
                 end else begin
+
                     if (stop_on_idle & s_axis_cmd_ready & ~s_axis_cmd_valid) begin
                         // no waiting command and stop_on_idle selected, issue stop condition
                         // write ack for previous read
                         phy_write_bit = 1'b1;
                         phy_tx_data = 1'b1;
                         // send stop bit
+                        $display("got last bit and received, so stopping");
+
                         state_next = STATE_STOP;
                     end else begin
+                  $display("Active Read: conditions: %d, %d",s_axis_cmd_ready,~s_axis_cmd_valid);
+$display("m_axis_data_tvalid %d ",  m_axis_data_tvalid);
                         state_next = STATE_ACTIVE_READ;
                     end
                 end
@@ -492,7 +509,9 @@ always @* begin
                     phy_write_bit = 1'b1;
                     phy_tx_data = mode_read_reg;
                     state_next = STATE_ADDRESS_1;
+                  $display("should be  %d",mode_read_reg);
                 end else begin
+                  $display("should be 0 %d",sda_o);
                     // read ack bit
                     phy_read_bit = 1'b1;
                     state_next = STATE_ADDRESS_2;
@@ -501,11 +520,16 @@ always @* begin
             STATE_ADDRESS_2: begin
                 // read ack bit
                 missed_ack_next = phy_rx_data_reg;
+                if (missed_ack_next)  begin
+                  $display("got NACK");
+                end
+                else
+                  $display("got ACK");
 
                 if (mode_read_reg) begin
                     // start read
                     bit_count_next = 4'd8;
-                    data_next = 1'b0;
+                    data_next = 8'b0;
                     state_next = STATE_READ;
                 end else begin
                     // start write
@@ -589,6 +613,7 @@ always @* begin
                 phy_stop_bit = 1'b1;
                 state_next = STATE_IDLE;
             end
+            default: $display("I don't think case default should get triggered");
         endcase
     end
 end
@@ -664,7 +689,6 @@ always @(posedge clk) begin
         s_axis_data_tready_reg <= 1'b0;
         m_axis_data_tvalid_reg <= 1'b0;
         busy_reg <= 1'b0;
-        bus_control_reg <= 1'b0;
         missed_ack_reg <= 1'b0;
     end
 end
