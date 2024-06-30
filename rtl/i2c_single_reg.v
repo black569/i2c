@@ -238,9 +238,8 @@ always @(posedge clk) begin
     if (data_latch) begin
         data_reg <= data_in;
     end
-
-    scl_i_filter_reg <= (scl_i_filter_reg << 1) | scl_i;
-    sda_i_filter_reg <= (sda_i_filter_reg << 1) | sda_i;
+    scl_i_filter_reg <= (scl_i_filter_reg << 1) | {3'b000, scl_i};
+    sda_i_filter_reg <= (sda_i_filter_reg << 1) | {3'b000, sda_i};
 
     if (scl_i_filter_reg == {FILTER_LEN{1'b1}}) begin
         scl_i_reg <= 1'b1;
