@@ -222,105 +222,102 @@ module i2c_master_tb;
     end
   endtask
 
+  // Task to test NACK handling
+task test_nack_handling;
+    begin
+        $display("Testing NACK handling.");
+        i2c_start(7'b0000001, 0);
+        s_axis_data_tdata = 8'b10100101;
+        s_axis_data_tvalid = 1;
+        @(posedge missed_ack);
+        $display("NACK expected!");
+        wait_for_ready();
+    end
+endtask
+
+// Task to test writing
+task test_writing;
+    begin
+        $display("Testing Writing.");
+        i2c_start(7'b0000001, 0);
+        s_axis_data_tdata = 8'b10101111;
+        s_axis_data_tvalid = 1;
+        repeat(7) @(negedge scl_o);
+        send_ack();
+        @(negedge scl_o);
+        //send_byte(8'b01111111);
+        stop_on_idle = 1;
+        wait_for_ready();
+        #1000;
+    end
+endtask
+
+// Task to test reading
+task test_reading;
+    begin
+        $display("Testing reading.");
+        s_axis_data_tdata = 8'b10101111;
+        s_axis_data_tvalid = 1;
+        i2c_start(7'b0000001, 1);
+        repeat(7) @(negedge scl_o);
+        s_axis_cmd_valid = 0;
+        send_ack();
+        send_byte(8'b01111111);
+        s_axis_cmd_read = 1;
+        s_axis_cmd_valid = 1;
+        m_axis_data_tready = 1;
+        @(negedge scl_o);
+        if (sda_wire) $fatal(1, "Got NACK from master");
+        $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
+        if (m_axis_data_tdata != 8'b01111111) $fatal(1, "We didn't get what we sent");
+        #(CLK_PERIOD);
+        stop_on_idle = 1;
+        send_byte(8'd69);
+        @(posedge m_axis_data_tvalid);
+        if (m_axis_data_tdata != 8'd69) $fatal(1, "We didn't get what we sent");
+        $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
+        s_axis_cmd_valid = 0;
+        wait_for_ready();
+        wait_for_ready();
+    end
+endtask
+
+// Task to test i2c_single_reg writing
+task test_i2c_single_reg_writing;
+    begin
+        $display("Testing i2c_single_reg writing");
+        i2c_start(7'h70, 0);
+        s_axis_data_tdata = 8'd55;
+        s_axis_data_tvalid = 1;
+        wait_for_ready();
+        if (data_out_3 != 8'd55) $fatal(1, "We didn't get what we sent");
+        $display("Received data %d", data_out_3);
+    end
+endtask
+
+// Task to test i2c_single_reg reading
+task test_i2c_single_reg_reading;
+    begin
+        $display("Testing i2c_single_reg reading");
+        data_latch_3 = 1;
+        data_in_3 = 8'd123;
+        #(CLK_PERIOD);
+        data_latch_3 = 0;
+        i2c_start(7'h70, 1);
+        @(posedge m_axis_data_tvalid);
+        $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
+        if (m_axis_data_tdata != 8'd123) $fatal(1, "We didn't get what we sent");
+    end
+endtask
 
   initial begin
     $display("Starting I2C Master test");
     initialize_testbench;
-    $display("Testing NACK handling.");
-
-    // Set address to 00000001, command to write
-    i2c_start(7'b0000001, 0);
-    s_axis_data_tdata  = 8'b10100101;
-    s_axis_data_tvalid = 1;
-
-    // Wait for NACK
-    @(posedge missed_ack);
-    $display("NACK expected!");
-
-    wait_for_ready();
-
-    $display("Testing Writing.");
-    // Second write attempt
-    i2c_start(7'b0000001, 0);
-    s_axis_data_tdata  = 8'b10101111;
-    s_axis_data_tvalid = 1;
-
-    // Hardcoding the acknowledgement
-    repeat (7) @(negedge scl_o);
-
-    // Send ACK
-    send_ack();
-    @(negedge scl_o);  // let 1 pass through
-    send_byte(8'b01111111);
-    stop_on_idle = 1;
-
-    wait_for_ready();
-    #1000;
-
-    // Start is implied
-    s_axis_data_tdata  = 8'b10101111;
-    s_axis_data_tvalid = 1;
-    i2c_start(7'b0000001, 1);
-
-    $display("Testing reading.");
-
-    // Hardcoding the acknowledgement
-    repeat (7) @(negedge scl_o);
-
-    // Send ACK
-    s_axis_cmd_valid = 0;
-    send_ack();
-    send_byte(8'b01111111);
-
-    // Continue with next read (does not require i2c_start condition)
-    s_axis_cmd_read = 1;
-    s_axis_cmd_valid = 1;
-    m_axis_data_tready = 1;  // prepare readiness
-
-    @(negedge scl_o);
-    if (sda_wire) begin
-      $fatal(1, "Got NACK from master");
-    end
-
-    $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
-    if (m_axis_data_tdata != 8'b01111111) begin
-      $fatal(1, "We didn't get what we sent");
-    end
-    #(CLK_PERIOD);
-    stop_on_idle = 1;
-
-    send_byte(8'd69);
-    @(posedge m_axis_data_tvalid);
-    if (m_axis_data_tdata != 8'd69) begin
-      $fatal(1, "We didn't get what we sent");
-    end
-    $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
-    s_axis_cmd_valid = 0;  // now stop
-
-    wait_for_ready();
-    wait_for_ready();
-    $display("Testing i2c_single_reg writing");
-    i2c_start(7'h70, 0);
-    s_axis_data_tdata  = 8'd55;
-    s_axis_data_tvalid = 1;
-
-    wait_for_ready();
-    if (data_out_3 != 8'd55) begin
-      $fatal(1, "We didn't get what we sent");
-    end
-    $display("Received data %d", data_out_3);
-    data_latch_3 = 1;
-    data_in_3 = 8'd123;
-    $display("Testing i2c_single_reg reading");
-    #(CLK_PERIOD);
-    data_latch_3 = 0;
-    i2c_start(7'h70, 1);
-    @(posedge m_axis_data_tvalid);
-    $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
-    if (m_axis_data_tdata != 8'd123) begin
-      $fatal(1, "We didn't get what we sent");
-    end
-
+    test_nack_handling();
+    test_writing();
+    test_reading();
+    test_i2c_single_reg_writing();
+    test_i2c_single_reg_reading();
     #1000;
     $finish;
   end
