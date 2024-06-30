@@ -446,58 +446,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
     end
   end
 
-  always @(posedge clk) begin
-    state_reg <= state_next;
-
-    addr_reg <= addr_next;
-    data_reg <= data_next;
-    data_valid_reg <= data_valid_next;
-    data_out_reg_valid_reg <= data_out_reg_valid_next;
-    last_reg <= last_next;
-
-    mode_read_reg <= mode_read_next;
-
-    bit_count_reg <= bit_count_next;
-
-    s_axis_data_tready_reg <= s_axis_data_tready_next;
-
-    m_axis_data_tdata_reg <= m_axis_data_tdata_next;
-    m_axis_data_tvalid_reg <= m_axis_data_tvalid_next;
-    m_axis_data_tlast_reg <= m_axis_data_tlast_next;
-
-    scl_i_filter <= (scl_i_filter << 1) | {3'b000, scl_i};
-    sda_i_filter <= (sda_i_filter << 1) | {3'b000, sda_i};
-
-    if (scl_i_filter == {FILTER_LEN{1'b1}}) begin
-      scl_i_reg <= 1'b1;
-    end else if (scl_i_filter == {FILTER_LEN{1'b0}}) begin
-      scl_i_reg <= 1'b0;
-    end
-
-    if (sda_i_filter == {FILTER_LEN{1'b1}}) begin
-      sda_i_reg <= 1'b1;
-    end else if (sda_i_filter == {FILTER_LEN{1'b0}}) begin
-      sda_i_reg <= 1'b0;
-    end
-
-    scl_o_reg <= scl_o_next;
-    sda_o_reg <= sda_o_next;
-
-    last_scl_i_reg <= scl_i_reg;
-    last_sda_i_reg <= sda_i_reg;
-
-    busy_reg <= !(state_reg == STATE_IDLE);
-
-    if (start_bit) begin
-      bus_active_reg <= 1'b1;
-    end else if (stop_bit) begin
-      bus_active_reg <= 1'b0;
-    end else begin
-      bus_active_reg <= bus_active_reg;
-    end
-
-    bus_addressed_reg <= bus_addressed_next;
-
+  always @(posedge clk or negedge rst) begin
     if (rst) begin
       state_reg <= STATE_IDLE;
       s_axis_data_tready_reg <= 1'b0;
@@ -507,7 +456,59 @@ I/O pin.  This would prevent devices from stretching the clock period.
       busy_reg <= 1'b0;
       bus_active_reg <= 1'b0;
       bus_addressed_reg <= 1'b0;
+    end else begin
+
+      state_reg <= state_next;
+
+      addr_reg <= addr_next;
+      data_reg <= data_next;
+      data_valid_reg <= data_valid_next;
+      data_out_reg_valid_reg <= data_out_reg_valid_next;
+      last_reg <= last_next;
+
+      mode_read_reg <= mode_read_next;
+
+      bit_count_reg <= bit_count_next;
+
+      s_axis_data_tready_reg <= s_axis_data_tready_next;
+
+      m_axis_data_tdata_reg <= m_axis_data_tdata_next;
+      m_axis_data_tvalid_reg <= m_axis_data_tvalid_next;
+      m_axis_data_tlast_reg <= m_axis_data_tlast_next;
+
+      scl_i_filter <= (scl_i_filter << 1) | {3'b000, scl_i};
+      sda_i_filter <= (sda_i_filter << 1) | {3'b000, sda_i};
+
+      if (scl_i_filter == {FILTER_LEN{1'b1}}) begin
+        scl_i_reg <= 1'b1;
+      end else if (scl_i_filter == {FILTER_LEN{1'b0}}) begin
+        scl_i_reg <= 1'b0;
+      end
+
+      if (sda_i_filter == {FILTER_LEN{1'b1}}) begin
+        sda_i_reg <= 1'b1;
+      end else if (sda_i_filter == {FILTER_LEN{1'b0}}) begin
+        sda_i_reg <= 1'b0;
+      end
+
+      scl_o_reg <= scl_o_next;
+      sda_o_reg <= sda_o_next;
+
+      last_scl_i_reg <= scl_i_reg;
+      last_sda_i_reg <= sda_i_reg;
+
+      busy_reg <= !(state_reg == STATE_IDLE);
+
+      if (start_bit) begin
+        bus_active_reg <= 1'b1;
+      end else if (stop_bit) begin
+        bus_active_reg <= 1'b0;
+      end else begin
+        bus_active_reg <= bus_active_reg;
+      end
+
+      bus_addressed_reg <= bus_addressed_next;
+
     end
   end
-
 endmodule
