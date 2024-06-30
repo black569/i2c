@@ -18,8 +18,8 @@ module i2c_phy_tb;
   wire scl_o;
   reg sda_i = 1;
   wire sda_o;
-  reg sda2=1;//dummy registers
-  reg scl2=1;
+  reg sda2 = 1;  //dummy registers
+  reg scl2 = 1;
   wire sda_t;
   wire scl_t;
   wire phy_busy;
@@ -30,13 +30,13 @@ module i2c_phy_tb;
   // Clock generation
   always #(CLK_PERIOD / 2) clk <= ~clk;
 
- // Tri-state buffer modeling
+  // Tri-state buffer modeling
   wire scl_wire;
   wire sda_wire;
 
   reg scl_i_reg_tb, sda_i_reg_tb;
   // Model pull-up resistors with weak pull-ups
-  pullup(scl_wire);
+  pullup (scl_wire);
   pullup (sda_wire);
 
   // Model open-drain outputs
@@ -45,16 +45,16 @@ module i2c_phy_tb;
 
   // Sample the bus with non-blocking assignments to avoid race conditions
   always @(posedge clk or posedge rst) begin
-      if (rst) begin
-          scl_i_reg_tb <= 1'b1;
-          sda_i_reg_tb <= 1'b1;
-      end else begin
-          scl_i_reg_tb <= scl_wire;
-          sda_i_reg_tb <= sda_wire;
-          
-          // Assert that sda_i_reg is not X
-          if(sda_i_reg_tb === 1'bx)  $fatal(1,"sda_i_reg is X at time %t", $time);
-      end
+    if (rst) begin
+      scl_i_reg_tb <= 1'b1;
+      sda_i_reg_tb <= 1'b1;
+    end else begin
+      scl_i_reg_tb <= scl_wire;
+      sda_i_reg_tb <= sda_wire;
+
+      // Assert that sda_i_reg is not X
+      if (sda_i_reg_tb === 1'bx) $fatal(1, "sda_i_reg is X at time %t", $time);
+    end
   end
 
 
@@ -81,7 +81,7 @@ module i2c_phy_tb;
       .phy_state_reg(phy_state_reg),
       .prescale(17'd3)
   );
-task initialize;
+  task initialize;
     begin
       rst = 1;
       phy_start_bit = 0;
@@ -105,7 +105,7 @@ task initialize;
     begin
       wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
       phy_write_bit = 1;
-      phy_tx_data = tx_data;
+      phy_tx_data   = tx_data;
       #(CLK_PERIOD * 2);
     end
   endtask
@@ -113,7 +113,7 @@ task initialize;
     begin
       wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
       phy_write_bit = 0;
-      phy_read_bit = 1;
+      phy_read_bit  = 1;
       #(CLK_PERIOD * 2);
     end
   endtask
@@ -144,12 +144,11 @@ task initialize;
 
       // Read ACK
       //Send ACK
-      sda2=0;
+      sda2 = 0;
       read_operation;
       wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
-      sda2=1;//pull sda2 back up
-      if (phy_rx_data_reg!=0)
-      $finish("Expecting ACK but found NACK: %d ", phy_rx_data_reg);
+      sda2 = 1;  //pull sda2 back up
+      if (phy_rx_data_reg != 0) $finish("Expecting ACK but found NACK: %d ", phy_rx_data_reg);
     end
   endtask
 
@@ -174,7 +173,7 @@ task initialize;
       read_operation;
 
       // Read byte
-      repeat(8) begin
+      repeat (8) begin
         read_operation;
       end
 

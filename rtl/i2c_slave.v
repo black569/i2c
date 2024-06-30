@@ -441,7 +441,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
             state_next = STATE_READ_3;
           end
         end
-        default:$display("default of slave triggered, do nothing");
+        default: $display("default of slave triggered, do nothing");
       endcase
     end
   end

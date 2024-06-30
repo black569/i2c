@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 // Language: Verilog 2001
 
-`resetall 
-`timescale 1ns / 1ps 
+`resetall  //comment hack verible not compatible with verilator
+`timescale 1ns / 1ps  //commen hack2
 `default_nettype none
 
 /*
