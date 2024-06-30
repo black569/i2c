@@ -118,14 +118,14 @@ module i2c_master_tb;
       wire scl_o_3 = 1'b1;
       wire sda_o_3 = 1'b1;
 
-  task test_i2c_single_reg_writing;
-          $display("not implemented");
+      task test_i2c_single_reg_writing;
+        $display("not implemented");
       endtask
 
       // Task to test i2c_single_reg reading
       task test_i2c_single_reg_reading;
-          $display("not implemented");
-     endtask
+        $display("not implemented");
+      endtask
 
 
     end
@@ -205,7 +205,7 @@ module i2c_master_tb;
           s_axis_cmd_write   = 1;  //really write the second
 
           wait_for_ready();
-          #(CLK_PERIOD*120);  //for verilator
+          #(CLK_PERIOD * 120);  //for verilator
           if (m_axis_data_tdata_4 !== 8'h55) begin
             // It seems verilator has trouble with this
             $display("instead of 55 we get %h", m_axis_data_tdata_4);
@@ -282,15 +282,15 @@ module i2c_master_tb;
     end else begin : device_4
       wire scl_o_4 = 1'b1;
       wire sda_o_4 = 1'b1;
-      reg m_axis_data_tready_4=0;
+      reg  m_axis_data_tready_4 = 0;
 
       task test_write_to_i2c_slave;
-         begin
+        begin
           $display("not implemented");
         end
       endtask
-task test_read_from_i2c_slave;
-         begin
+      task test_read_from_i2c_slave;
+        begin
           $display("not implemented");
         end
       endtask
@@ -511,7 +511,7 @@ task test_read_from_i2c_slave;
     device_3.test_i2c_single_reg_reading();
     #1000;  //stopping
     //we are always ready
-device_4.m_axis_data_tready_4=1;
+    device_4.m_axis_data_tready_4 = 1;
     device_4.test_write_to_i2c_slave();
     device_4.test_read_from_i2c_slave();
     // test_bus_release();
