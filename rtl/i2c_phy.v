@@ -315,24 +315,7 @@ module i2c_phy (
   end
 
 
-  always @(posedge clk) begin
-    phy_state_reg <= phy_state_next;
-
-    phy_rx_data_reg <= phy_rx_data_next;
-
-
-    delay_reg <= delay_next;
-    delay_scl_reg <= delay_scl_next;
-    delay_sda_reg <= delay_sda_next;
-
-
-    scl_i_reg <= scl_i;
-    sda_i_reg <= sda_i;
-
-    scl_o_reg <= scl_o_next;
-    sda_o_reg <= sda_o_next;
-
-    bus_control_reg <= bus_control_next;
+  always @(posedge clk or negedge rst) begin
 
     if (rst) begin
       phy_rx_data_reg <= 1'b0;
@@ -343,6 +326,24 @@ module i2c_phy (
       scl_o_reg <= 1'b1;
       sda_o_reg <= 1'b1;
       bus_control_reg <= 1'b0;
+    end else begin
+      phy_state_reg <= phy_state_next;
+
+      phy_rx_data_reg <= phy_rx_data_next;
+
+
+      delay_reg <= delay_next;
+      delay_scl_reg <= delay_scl_next;
+      delay_sda_reg <= delay_sda_next;
+
+
+      scl_i_reg <= scl_i;
+      sda_i_reg <= sda_i;
+
+      scl_o_reg <= scl_o_next;
+      sda_o_reg <= sda_o_next;
+
+      bus_control_reg <= bus_control_next;
     end
   end
 
