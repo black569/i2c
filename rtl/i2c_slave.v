@@ -168,14 +168,14 @@ I/O pin.  This would prevent devices from stretching the clock period.
 */
 
   localparam [4:0]
-    STATE_IDLE = 4'd0,
-    STATE_ADDRESS = 4'd1,
-    STATE_ACK = 4'd2,
-    STATE_WRITE_1 = 4'd3,
-    STATE_WRITE_2 = 4'd4,
-    STATE_READ_1 = 4'd5,
-    STATE_READ_2 = 4'd6,
-    STATE_READ_3 = 4'd7;
+    STATE_IDLE = 5'd0,
+    STATE_ADDRESS = 5'd1,
+    STATE_ACK = 5'd2,
+    STATE_WRITE_1 = 5'd3,
+    STATE_WRITE_2 = 5'd4,
+    STATE_READ_1 = 5'd5,
+    STATE_READ_2 = 5'd6,
+    STATE_READ_3 = 5'd7;
 
   reg [4:0] state_reg = STATE_IDLE, state_next;
 
@@ -431,6 +431,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
             state_next = STATE_READ_3;
           end
         end
+        default:$display("default of slave triggered, do nothing");
       endcase
     end
   end
@@ -454,8 +455,8 @@ I/O pin.  This would prevent devices from stretching the clock period.
     m_axis_data_tvalid_reg <= m_axis_data_tvalid_next;
     m_axis_data_tlast_reg <= m_axis_data_tlast_next;
 
-    scl_i_filter <= (scl_i_filter << 1) | scl_i;
-    sda_i_filter <= (sda_i_filter << 1) | sda_i;
+    scl_i_filter <= (scl_i_filter << 1) | {3'b000, scl_i};
+    sda_i_filter <= (sda_i_filter << 1) | {3'b000, sda_i};
 
     if (scl_i_filter == {FILTER_LEN{1'b1}}) begin
       scl_i_reg <= 1'b1;
