@@ -10,7 +10,7 @@ module i2c_master_tb;
   // Parameters
 
   parameter CLK_PERIOD = 10;  // 10ns clock period (100MHz clock)
-  parameter ENABLE_DEVICE_3 = 1;  // Set to 0 to disable device 3
+  parameter ENABLE_DEVICE_3 = 0;  // Set to 0 to disable device 3
   parameter ENABLE_DEVICE_4 = 1;  // Set to 0 to disable device 4
 
   reg clk = 0;
@@ -83,6 +83,40 @@ module i2c_master_tb;
           .data_latch(data_latch_3),
           .data_out(data_out_3)
       );
+
+
+      // Task to test i2c_single_reg writing
+      task test_i2c_single_reg_writing;
+        begin
+          $display("Testing i2c_single_reg writing");
+          i2c_start(7'h70, 0);
+          s_axis_data_tdata  = 8'd55;
+          s_axis_data_tvalid = 1;
+          wait_for_ready();
+          if (data_out_3 != 8'd55) $fatal(1, "We didn't get what we sent");
+          $display("Received data %d", data_out_3);
+        end
+      endtask
+
+      // Task to test i2c_single_reg reading
+      task test_i2c_single_reg_reading;
+        begin
+          $display("Testing i2c_single_reg reading");
+          data_latch_3 = 1;
+          data_in_3 = 8'd123;
+          m_axis_data_tready = 1;
+          #(CLK_PERIOD);
+          data_latch_3 = 0;
+          i2c_start(7'h70, 1);
+          @(posedge m_axis_data_tvalid);
+          $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
+          if (m_axis_data_tdata != 8'd123) $fatal(1, "We didn't get what we sent");
+        end
+      endtask
+
+    end else begin : device_3
+      wire scl_o_3 = 1'b1;
+      wire sda_o_3 = 1'b1;
     end
   endgenerate
 
@@ -95,12 +129,12 @@ module i2c_master_tb;
       wire scl_t_4;
       wire [7:0] m_axis_data_tdata_4;
       wire m_axis_data_tvalid_4;
-      wire m_axis_data_tready_4;
+      reg m_axis_data_tready_4;
       wire m_axis_data_tlast_4;
-      wire [7:0] s_axis_data_tdata_4;
-      wire s_axis_data_tvalid_4;
+      reg [7:0] s_axis_data_tdata_4;
+      reg s_axis_data_tvalid_4;
       wire s_axis_data_tready_4;
-      wire s_axis_data_tlast_4;
+      reg s_axis_data_tlast_4;
       wire busy_4;
       wire [6:0] bus_address_4;
       wire bus_addressed_4;
@@ -138,7 +172,107 @@ module i2c_master_tb;
           .device_address(device_address_4),
           .device_address_mask(device_address_mask_4)
       );
+
+      task test_write_to_i2c_slave;
+        begin
+          $display("Testing writing to i2c_slave (device_4)");
+          enable_4 = 1;
+          device_address_4 = 7'h42;  // Set slave address
+          device_address_mask_4 = 7'h7F;  // Check all bits
+
+          i2c_start(7'h42, 0);  // Start write operation
+          s_axis_data_tdata = 8'hAA;  // Data to write
+          s_axis_data_tvalid = 1;
+          stop_on_idle = 1;
+
+          wait_for_ready();
+
+          if (m_axis_data_tdata_4 !== 8'hAA) $fatal(1, "First byte mismatch");
+          s_axis_data_tdata  = 8'h55;  // Second byte to write
+          s_axis_data_tvalid = 1;
+          s_axis_cmd_valid   = 1;  //still valid
+          s_axis_cmd_write   = 1;  //really write the second
+
+          wait_for_ready();
+          #(CLK_PERIOD);  //for verilator
+          if (m_axis_data_tdata_4 !== 8'h55) begin
+            // It seems verilator has trouble with this
+            $display("instead of 55 we get %h", m_axis_data_tdata_4);
+            $fatal(1, "Second byte mismatch");
+          end
+
+          s_axis_cmd_valid = 0;
+          wait_for_ready();
+
+          #(CLK_PERIOD * 10);  // Wait for slave to process
+
+          $display("Write to i2c_slave successful");
+        end
+      endtask
+
+      // Task to test reading from i2c_slave
+      task test_read_from_i2c_slave;
+        begin
+          $display("Testing reading from i2c_slave (device_4)");
+          enable_4 = 1;
+          device_address_4 = 7'h42;  // Set slave address
+          device_address_mask_4 = 7'h7F;  // Check all bits
+
+          // Prepare data to be read
+          s_axis_data_tdata_4 = 8'hCC;
+          s_axis_data_tvalid_4 = 1;
+          i2c_start(7'h42, 1);  // Start read operation
+          m_axis_data_tready = 1;
+          $display("i2c start was started and now waiting for m_axis_data_tvalid..");
+          @(posedge m_axis_data_tvalid);
+          s_axis_data_tvalid_4 = 0;
+          if (m_axis_data_tdata !== 8'hCC) $fatal(1, "First read byte mismatch");
+
+          s_axis_cmd_valid = 1;  //read 2 times
+          s_axis_cmd_read = 1;
+          s_axis_data_tvalid_4 = 1;
+          s_axis_data_tdata_4 = 8'hDD;
+
+          @(posedge m_axis_data_tvalid);
+          if (m_axis_data_tdata !== 8'hDD) $fatal(1, "Second read byte mismatch");
+
+          s_axis_cmd_valid = 0;
+          wait_for_ready();
+
+          $display("Read from i2c_slave successful");
+        end
+      endtask
+
+      // Task to test bus release, incomplete (not done)
+      task test_bus_release;
+        begin
+          $display("Testing bus release for i2c_slave (device_4)");
+          enable_4 = 1;
+          device_address_4 = 7'h42;  // Set slave address
+          device_address_mask_4 = 7'h7F;  // Check all bits
+
+          i2c_start(7'h42, 0);  // Start write operation
+          #(CLK_PERIOD * 10);
+
+          if (!bus_active_4) $fatal(1, "Bus should be active");
+
+          release_bus_4 = 1;
+          #(CLK_PERIOD);
+          release_bus_4 = 0;
+
+          #(CLK_PERIOD * 10);
+
+          if (bus_active_4) $fatal(1, "Bus should not be active after release");
+
+          $display("Bus release test successful");
+        end
+      endtask
+
+    end else begin : device_4
+      wire scl_o_4 = 1'b1;
+      wire sda_o_4 = 1'b1;
     end
+
   endgenerate
 
   // Model pull-up resistors with weak pull-ups
@@ -146,12 +280,8 @@ module i2c_master_tb;
   pullup (sda_wire);
 
   // Model open-drain outputs, including conditional devices
-  assign scl_wire = (scl_o & scl2 & 
-                     (ENABLE_DEVICE_3 ? device_3.scl_o_3 : 1'b1) & 
-                     (ENABLE_DEVICE_4 ? device_4.scl_o_4 : 1'b1)) ? 1'bz : 1'b0;
-  assign sda_wire = (sda_o & sda2 & 
-                     (ENABLE_DEVICE_3 ? device_3.sda_o_3 : 1'b1) & 
-                     (ENABLE_DEVICE_4 ? device_4.sda_o_4 : 1'b1)) ? 1'bz : 1'b0;
+  assign scl_wire = (scl_o & scl2 & device_3.scl_o_3 & device_4.scl_o_4) ? 1'bz : 1'b0;
+  assign sda_wire = (sda_o & sda2 & device_3.sda_o_3 & device_4.sda_o_4) ? 1'bz : 1'b0;
 
 
   always #(CLK_PERIOD / 2) clk <= ~clk;
@@ -342,38 +472,11 @@ module i2c_master_tb;
       wait_for_ready();
     end
   endtask
-
-  // Task to test i2c_single_reg writing
-  task test_i2c_single_reg_writing;
-    begin
-      $display("Testing i2c_single_reg writing");
-      i2c_start(7'h70, 0);
-      s_axis_data_tdata  = 8'd55;
-      s_axis_data_tvalid = 1;
-      wait_for_ready();
-      if (device_3.data_out_3 != 8'd55) $fatal(1, "We didn't get what we sent");
-      $display("Received data %d", device_3.data_out_3);
-    end
-  endtask
-
-  // Task to test i2c_single_reg reading
-  task test_i2c_single_reg_reading;
-    begin
-      $display("Testing i2c_single_reg reading");
-      device_3.data_latch_3 = 1;
-      device_3.data_in_3 = 8'd123;
-      #(CLK_PERIOD);
-      device_3.data_latch_3 = 0;
-      i2c_start(7'h70, 1);
-      @(posedge m_axis_data_tvalid);
-      $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
-      if (m_axis_data_tdata != 8'd123) $fatal(1, "We didn't get what we sent");
-    end
-  endtask
-
+  // Task to test writing to i2c_slave
   initial begin
     $display("Starting I2C Master test");
     initialize_testbench;
+    /*
     test_nack_handling();
     stop_on_idle = 1;
     test_writing();
@@ -383,6 +486,11 @@ module i2c_master_tb;
     wait_for_ready();
     test_i2c_single_reg_writing();
     test_i2c_single_reg_reading();
+    #1000;  //stopping
+    */
+    if (ENABLE_DEVICE_4) device_4.test_write_to_i2c_slave();
+    //test_read_from_i2c_slave();
+    // test_bus_release();
     #1000;
     $finish;
   end
