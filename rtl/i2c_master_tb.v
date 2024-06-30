@@ -246,10 +246,7 @@ task test_writing;
         send_ack();
         @(negedge scl_o);
         //send_byte(8'b01111111);
-        stop_on_idle = 1;
-        wait_for_ready();
-        #1000;
-    end
+       end
 endtask
 
 // Task to test reading
@@ -277,7 +274,6 @@ task test_reading;
         if (m_axis_data_tdata != 8'd69) $fatal(1, "We didn't get what we sent");
         $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
         s_axis_cmd_valid = 0;
-        wait_for_ready();
         wait_for_ready();
     end
 endtask
@@ -314,8 +310,13 @@ endtask
     $display("Starting I2C Master test");
     initialize_testbench;
     test_nack_handling();
+     stop_on_idle = 1;
     test_writing();
+        wait_for_ready();
+        #1000;
+
     test_reading();
+    wait_for_ready();
     test_i2c_single_reg_writing();
     test_i2c_single_reg_reading();
     #1000;
