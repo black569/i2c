@@ -67,25 +67,25 @@ localparam [4:0]
     STATE_READ_2 = 4'd6,
     STATE_READ_3 = 4'd7;
 
-reg [4:0] state_reg = STATE_IDLE;
+reg [4:0] state_reg;
 
-reg [7:0] data_reg = 8'd0;
-reg [7:0] shift_reg = 8'd0;
+reg [7:0] data_reg;
+reg [7:0] shift_reg;
 
-reg mode_read_reg = 1'b0;
+reg mode_read_reg;
 
-reg [3:0] bit_count_reg = 4'd0;
+reg [3:0] bit_count_reg;
 
-reg [FILTER_LEN-1:0] scl_i_filter_reg = {FILTER_LEN{1'b1}};
-reg [FILTER_LEN-1:0] sda_i_filter_reg = {FILTER_LEN{1'b1}};
+reg [FILTER_LEN-1:0] scl_i_filter_reg;
+reg [FILTER_LEN-1:0] sda_i_filter_reg;
 
-reg scl_i_reg = 1'b1;
-reg sda_i_reg = 1'b1;
+reg scl_i_reg;
+reg sda_i_reg;
 
-reg sda_o_reg = 1'b1;
+reg sda_o_reg;
 
-reg last_scl_i_reg = 1'b1;
-reg last_sda_i_reg = 1'b1;
+reg last_scl_i_reg;
+reg last_sda_i_reg;
 
 assign scl_o = 1'b1;
 assign scl_t = 1'b1;
@@ -107,7 +107,7 @@ always @(posedge clk) begin
     if (start_bit) begin
         sda_o_reg <= 1'b1;
 
-        bit_count_reg = 4'd7;
+        bit_count_reg <= 4'd7;
         state_reg <= STATE_ADDRESS;
     end else if (stop_bit) begin
         sda_o_reg <= 1'b1;
@@ -193,16 +193,16 @@ always @(posedge clk) begin
                 // read data byte
                 if (scl_negedge) begin
                     // shift out data bit
-                    {sda_o_reg, shift_reg} = {shift_reg, sda_i_reg};
+                    {sda_o_reg, shift_reg} <= {shift_reg, sda_i_reg};
 
                     if (bit_count_reg > 0) begin
-                        bit_count_reg = bit_count_reg-1;
-                        state_reg = STATE_READ_1;
+                        bit_count_reg <= bit_count_reg-1;
+                        state_reg <= STATE_READ_1;
                     end else begin
-                        state_reg = STATE_READ_2;
+                        state_reg <= STATE_READ_2;
                     end
                 end else begin
-                    state_reg = STATE_READ_1;
+                    state_reg <= STATE_READ_1;
                 end
             end
             STATE_READ_2: begin
@@ -231,6 +231,7 @@ always @(posedge clk) begin
                     state_reg <= STATE_READ_3;
                 end
             end
+            default: $display("This should never happen");
         endcase
     end
 
