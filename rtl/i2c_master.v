@@ -248,7 +248,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
   reg [7:0] m_axis_data_tdata_reg = 8'd0, m_axis_data_tdata_next;
   reg m_axis_data_tvalid_reg = 1'b0, m_axis_data_tvalid_next;
   reg m_axis_data_tlast_reg = 1'b0, m_axis_data_tlast_next;
-  reg value_has_been_written_reg =0'b0;
+  reg value_has_been_written_reg =1'b0;
 
   reg scl_i_reg = 1'b1;
   reg sda_i_reg = 1'b1;
