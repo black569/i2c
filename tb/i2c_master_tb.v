@@ -33,6 +33,7 @@ module i2c_master_tb;
   reg sda_i = 1;
   reg [15:0] prescale = 0;
   reg stop_on_idle = 0;
+  
 
   wire s_axis_cmd_ready;
   wire s_axis_data_tready;
@@ -47,6 +48,7 @@ module i2c_master_tb;
   wire bus_control;
   wire bus_active;
   wire missed_ack;
+  wire value_has_been_written;//never used
 
   // Wires for modeling pull-up resistors and open-drain outputs
   wire scl_wire;
@@ -360,6 +362,7 @@ module i2c_master_tb;
       .bus_control(bus_control),
       .bus_active(bus_active),
       .missed_ack(missed_ack),
+      .value_has_been_written(value_has_been_written)
       .prescale(prescale),
       .stop_on_idle(stop_on_idle)
   );
