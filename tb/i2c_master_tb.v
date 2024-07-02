@@ -362,7 +362,7 @@ module i2c_master_tb;
       .bus_control(bus_control),
       .bus_active(bus_active),
       .missed_ack(missed_ack),
-      .value_has_been_written(value_has_been_written)
+      .value_has_been_written(value_has_been_written),
       .prescale(prescale),
       .stop_on_idle(stop_on_idle)
   );
