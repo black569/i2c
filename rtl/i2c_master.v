@@ -54,6 +54,7 @@ module i2c_master (
     output wire       m_axis_data_tvalid,
     input  wire       m_axis_data_tready,
     output wire       m_axis_data_tlast,
+    
 
     /*
      * I2C interface
@@ -72,7 +73,7 @@ module i2c_master (
     output wire bus_control,
     output wire bus_active,
     output wire missed_ack,
-
+    output wire       value_has_been_written,//triggers on last value
     /*
      * Configuration
      */
@@ -247,6 +248,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
   reg [7:0] m_axis_data_tdata_reg = 8'd0, m_axis_data_tdata_next;
   reg m_axis_data_tvalid_reg = 1'b0, m_axis_data_tvalid_next;
   reg m_axis_data_tlast_reg = 1'b0, m_axis_data_tlast_next;
+  reg value_has_been_written_reg =0'b0;
 
   reg scl_i_reg = 1'b1;
   reg sda_i_reg = 1'b1;
@@ -263,7 +265,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
   wire phy_busy;
   //reg bus_control_reg = 1'b0, bus_control_next;
   reg missed_ack_reg = 1'b0, missed_ack_next;
-
+assign value_has_been_written = value_has_been_written_reg;
   assign s_axis_cmd_ready = s_axis_cmd_ready_reg;
 
   assign s_axis_data_tready = s_axis_data_tready_reg;
@@ -567,6 +569,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
         STATE_WRITE_3: begin
           // read ack bit
           missed_ack_next = phy_rx_data_reg;
+          value_has_been_written_reg=1;
 
           if (mode_write_multiple_reg && !last_reg) begin
             // more to write
