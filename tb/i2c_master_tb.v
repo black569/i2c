@@ -58,23 +58,23 @@ module i2c_master_tb;
   reg sda2 = 1;
   reg scl2 = 1;
 
-
-  task wait_for_success();
-
-    do begin
+task wait_for_success;
+  reg continue_waiting;
+  begin
+    continue_waiting = 1;
+    while (continue_waiting) begin
       @(posedge missed_ack or posedge value_has_been_written or posedge m_axis_data_tvalid or posedge s_axis_cmd_stop);
       if (missed_ack) begin
         s_axis_data_tvalid = 1;
-        $display("missed ack detected we retry happiliy?");
+        $display("missed ack detected we retry happily?");
       end else if (value_has_been_written | m_axis_data_tvalid | s_axis_cmd_stop) begin
-
         s_axis_data_tvalid = 0;
         s_axis_cmd_valid   = 0;
+        continue_waiting = 0;
       end
-    end while (s_axis_data_tvalid == 1'b1);  //what happens if it gets no ack at the end?
-
-
-  endtask : wait_for_success
+    end
+  end
+endtask
   // Generate block for Device 3
   generate
     if (ENABLE_DEVICE_3) begin : device_3
