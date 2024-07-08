@@ -51,13 +51,13 @@ module i2c_phy (
 
   // Internal registers
 
-  reg scl_o_reg;
-  reg scl_i_reg;
-  reg sda_i_reg;
-  reg sda_o_reg;
+  reg scl_o_reg = 1;
+  reg scl_i_reg = 1;
+  reg sda_i_reg = 1;
+  reg sda_o_reg = 1;
 
 
-  reg phy_rx_data_next;
+  reg phy_rx_data_next = 0;
 
   reg [4:0] phy_state_next;
 
@@ -65,10 +65,10 @@ module i2c_phy (
   reg delay_scl_reg = 1'b0, delay_scl_next;
   reg delay_sda_reg = 1'b0, delay_sda_next;
 
-  reg scl_o_next;
-  reg sda_o_next;
+  reg scl_o_next = 1;
+  reg sda_o_next = 1;
 
-  reg bus_control_next;
+  reg bus_control_next = 0;
 
   assign scl_o = scl_o_reg;
   assign scl_t = scl_o_reg;

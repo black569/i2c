@@ -54,7 +54,7 @@ module i2c_master (
     output wire       m_axis_data_tvalid,
     input  wire       m_axis_data_tready,
     output wire       m_axis_data_tlast,
-    
+
 
     /*
      * I2C interface
@@ -69,16 +69,16 @@ module i2c_master (
     /*
      * Status
      */
-    output wire busy,
-    output wire bus_control,
-    output wire bus_active,
-    output wire missed_ack,
-    output wire       value_has_been_written,//triggers on last value
+    output wire        busy,
+    output wire        bus_control,
+    output wire        bus_active,
+    output wire        missed_ack,
+    output wire        value_has_been_written,  //triggers on last value
     /*
      * Configuration
      */
-    input wire [15:0] prescale,
-    input wire        stop_on_idle
+    input  wire [15:0] prescale,
+    input  wire        stop_on_idle
 );
 
   /*
@@ -248,7 +248,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
   reg [7:0] m_axis_data_tdata_reg = 8'd0, m_axis_data_tdata_next;
   reg m_axis_data_tvalid_reg = 1'b0, m_axis_data_tvalid_next;
   reg m_axis_data_tlast_reg = 1'b0, m_axis_data_tlast_next;
-  reg value_has_been_written_reg =1'b0;
+  reg value_has_been_written_reg = 1'b0;
 
   reg scl_i_reg = 1'b1;
   reg sda_i_reg = 1'b1;
@@ -265,7 +265,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
   wire phy_busy;
   //reg bus_control_reg = 1'b0, bus_control_next;
   reg missed_ack_reg = 1'b0, missed_ack_next;
-assign value_has_been_written = value_has_been_written_reg;
+  assign value_has_been_written = value_has_been_written_reg;
   assign s_axis_cmd_ready = s_axis_cmd_ready_reg;
 
   assign s_axis_data_tready = s_axis_data_tready_reg;
@@ -319,6 +319,7 @@ assign value_has_been_written = value_has_been_written_reg;
     m_axis_data_tdata_next = m_axis_data_tdata_reg;
     m_axis_data_tvalid_next = m_axis_data_tvalid_reg & ~m_axis_data_tready;
     m_axis_data_tlast_next = m_axis_data_tlast_reg;
+    value_has_been_written_reg = 1'b0;
 
     missed_ack_next = 1'b0;
 
@@ -393,7 +394,8 @@ assign value_has_been_written = value_has_been_written_reg;
             end else if (s_axis_cmd_stop && !(s_axis_cmd_read || s_axis_cmd_write || s_axis_cmd_write_multiple)) begin
               // stop command
               phy_stop_bit = 1'b1;
-              state_next   = STATE_IDLE;
+              $display("from active write to idle? why?");
+              state_next = STATE_IDLE;
             end else begin
               // invalid or unspecified - ignore
               state_next = STATE_ACTIVE_WRITE;
@@ -524,17 +526,20 @@ assign value_has_been_written = value_has_been_written_reg;
           missed_ack_next = phy_rx_data_reg;
           if (missed_ack_next) begin
             $display("got NACK");
-          end else $display("got ACK");
-
-          if (mode_read_reg) begin
-            // start read
-            bit_count_next = 4'd8;
-            data_next = 8'b0;
-            state_next = STATE_READ;
+            state_next = STATE_STOP;
           end else begin
-            // start write
-            s_axis_data_tready_next = 1'b1;
-            state_next = STATE_WRITE_1;
+            $display("got ACK");
+
+            if (mode_read_reg) begin
+              // start read
+              bit_count_next = 4'd8;
+              data_next = 8'b0;
+              state_next = STATE_READ;
+            end else begin
+              // start write
+              s_axis_data_tready_next = 1'b1;
+              state_next = STATE_WRITE_1;
+            end
           end
         end
         STATE_WRITE_1: begin
@@ -569,18 +574,25 @@ assign value_has_been_written = value_has_been_written_reg;
         STATE_WRITE_3: begin
           // read ack bit
           missed_ack_next = phy_rx_data_reg;
-          value_has_been_written_reg=1;
-
-          if (mode_write_multiple_reg && !last_reg) begin
-            // more to write
-            state_next = STATE_WRITE_1;
-          end else if (mode_stop_reg) begin
-            // last cycle and stop selected
-            phy_stop_bit = 1'b1;
-            state_next   = STATE_IDLE;
+          if (missed_ack_next) begin
+            $display("got NACK on write");
+            state_next = STATE_STOP;
           end else begin
-            // otherwise, return to bus active state
-            state_next = STATE_ACTIVE_WRITE;
+            $display("got ACK on write %d", $time);
+
+            value_has_been_written_reg = 1;  //only if successful!
+
+            if (mode_write_multiple_reg && !last_reg) begin
+              // more to write
+              state_next = STATE_WRITE_1;
+            end else if (mode_stop_reg) begin
+              // last cycle and stop selected
+              phy_stop_bit = 1'b1;
+              state_next   = STATE_IDLE;
+            end else begin
+              // otherwise, return to bus active state
+              state_next = STATE_ACTIVE_WRITE;
+            end
           end
         end
         STATE_READ: begin

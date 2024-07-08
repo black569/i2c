@@ -201,8 +201,8 @@ I/O pin.  This would prevent devices from stretching the clock period.
   reg scl_i_reg = 1'b1;
   reg sda_i_reg = 1'b1;
 
-  reg scl_o_reg = 1'b1, scl_o_next;
-  reg sda_o_reg = 1'b1, sda_o_next;
+  reg scl_o_reg = 1'b1, scl_o_next = 1;
+  reg sda_o_reg = 1'b1, sda_o_next = 1;
 
   reg last_scl_i_reg = 1'b1;
   reg last_sda_i_reg = 1'b1;

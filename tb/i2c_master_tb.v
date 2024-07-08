@@ -10,7 +10,7 @@ module i2c_master_tb;
   // Parameters
 
   parameter CLK_PERIOD = 10;  // 10ns clock period (100MHz clock)
-  parameter ENABLE_DEVICE_3 = 0;  // Set to 0 to disable device 3
+  parameter ENABLE_DEVICE_3 = 1;  // Set to 0 to disable device 3
   parameter ENABLE_DEVICE_4 = 1;  // Set to 0 to disable device 4
 
   reg clk = 0;
@@ -33,7 +33,7 @@ module i2c_master_tb;
   reg sda_i = 1;
   reg [15:0] prescale = 0;
   reg stop_on_idle = 0;
-  
+
 
   wire s_axis_cmd_ready;
   wire s_axis_data_tready;
@@ -48,7 +48,7 @@ module i2c_master_tb;
   wire bus_control;
   wire bus_active;
   wire missed_ack;
-  wire value_has_been_written;//never used
+  wire value_has_been_written;  //never used
 
   // Wires for modeling pull-up resistors and open-drain outputs
   wire scl_wire;
@@ -58,6 +58,23 @@ module i2c_master_tb;
   reg sda2 = 1;
   reg scl2 = 1;
 
+
+  task wait_for_success();
+
+    do begin
+      @(posedge missed_ack or posedge value_has_been_written or posedge m_axis_data_tvalid or posedge s_axis_cmd_stop);
+      if (missed_ack) begin
+        s_axis_data_tvalid = 1;
+        $display("missed ack detected we retry happiliy?");
+      end else if (value_has_been_written | m_axis_data_tvalid | s_axis_cmd_stop) begin
+
+        s_axis_data_tvalid = 0;
+        s_axis_cmd_valid   = 0;
+      end
+    end while (s_axis_data_tvalid == 1'b1);  //what happens if it gets no ack at the end?
+
+
+  endtask : wait_for_success
   // Generate block for Device 3
   generate
     if (ENABLE_DEVICE_3) begin : device_3
@@ -91,9 +108,12 @@ module i2c_master_tb;
       task test_i2c_single_reg_writing;
         begin
           $display("Testing i2c_single_reg writing");
+          wait_for_ready();
           i2c_start(7'h70, 0);
           s_axis_data_tdata  = 8'd55;
           s_axis_data_tvalid = 1;
+          wait_for_success;
+
           wait_for_ready();
           if (data_out_3 != 8'd55) $fatal(1, "We didn't get what we sent");
           $display("Received data %d", data_out_3);
@@ -110,7 +130,8 @@ module i2c_master_tb;
           #(CLK_PERIOD);
           data_latch_3 = 0;
           i2c_start(7'h70, 1);
-          @(posedge m_axis_data_tvalid);
+          wait_for_success;
+          //@(posedge m_axis_data_tvalid);
           $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
           if (m_axis_data_tdata != 8'd123) $fatal(1, "We didn't get what we sent");
         end
@@ -119,6 +140,7 @@ module i2c_master_tb;
     end else begin : device_3
       wire scl_o_3 = 1'b1;
       wire sda_o_3 = 1'b1;
+      reg  data_out_3 = 1'b1;
 
       task test_i2c_single_reg_writing;
         $display("not implemented");
@@ -197,6 +219,7 @@ module i2c_master_tb;
           s_axis_data_tdata = 8'hAA;  // Data to write
           s_axis_data_tvalid = 1;
           stop_on_idle = 1;
+          wait_for_success;
 
           wait_for_ready();
 
@@ -237,7 +260,7 @@ module i2c_master_tb;
           i2c_start(7'h42, 1);  // Start read operation
           m_axis_data_tready = 1;
           $display("i2c start was started and now waiting for m_axis_data_tvalid..");
-          @(posedge m_axis_data_tvalid);
+          wait_for_success;
           s_axis_data_tvalid_4 = 0;
           if (m_axis_data_tdata !== 8'hCC) $fatal(1, "First read byte mismatch");
 
@@ -245,8 +268,7 @@ module i2c_master_tb;
           s_axis_cmd_read = 1;
           s_axis_data_tvalid_4 = 1;
           s_axis_data_tdata_4 = 8'hDD;
-
-          @(posedge m_axis_data_tvalid);
+          wait_for_success;
           if (m_axis_data_tdata !== 8'hDD) $fatal(1, "Second read byte mismatch");
 
           s_axis_cmd_valid = 0;
@@ -322,13 +344,18 @@ module i2c_master_tb;
       sda_i <= sda_wire;
 
       // Assert that sda_i is not X
-      if (sda_i === 1'bx) $fatal(1, "sda_i is X at time %t", $time);
+      if (sda_i === 1'bx) begin
+
+        $display("sda4 %d", device_4.sda_o_4);
+
+        $fatal(1, "sda_i is X at time %t", $time);
+      end
     end
   end
 
   initial begin
     // dump file
-    $dumpfile("i2c_master_tb.fst");
+    $dumpfile("i2c_master_tb.vcd");
     $dumpvars(0, i2c_master_tb);
 
   end
@@ -398,18 +425,20 @@ module i2c_master_tb;
     input is_read;
     begin
       s_axis_cmd_address = address;
-      s_axis_cmd_start = 1;
+      //s_axis_cmd_start = 1;
       s_axis_cmd_read = is_read;
       s_axis_cmd_write = !is_read;
       s_axis_cmd_valid = 1;
 
-      @(negedge sda_wire);
-      @(negedge scl_wire);  //start condition done! 
+      //cant enforce anyway
 
-      s_axis_cmd_start = 0;
-      s_axis_cmd_read  = 0;
-      s_axis_cmd_write = 0;
-      s_axis_cmd_valid = 0;
+      //@(negedge sda_wire);
+      //@(negedge scl_wire);  //start condition done! 
+
+      //s_axis_cmd_start = 0;
+      //s_axis_cmd_read  = 0;
+      //s_axis_cmd_write = 0;
+      //s_axis_cmd_valid = 0;
     end
   endtask
 
@@ -464,12 +493,36 @@ module i2c_master_tb;
       s_axis_data_tdata  = 8'b10101111;
       s_axis_data_tvalid = 1;
       repeat (7) @(negedge scl_o);
+      s_axis_cmd_valid = 0;
       send_ack();
       @(negedge scl_o);
       //send_byte(8'b01111111);
       wait_for_ready();
     end
   endtask
+  // Task to test writing
+  task test_valid_weird;
+    begin
+      $display("Testing something.");
+      i2c_start(7'h70, 0);
+      $display("send address?");
+      @(posedge s_axis_data_tready);
+      s_axis_data_tdata  = 8'b10101111;
+      s_axis_data_tvalid = 1;
+      @(negedge s_axis_data_tready)
+      //repeat (2) @(posedge clk);
+      s_axis_data_tvalid = 0;
+      $display("if setting valid false it will not work?");
+      @(posedge value_has_been_written);
+      $display("success %b", device_3.data_out_3);
+      //repeat (7) @(negedge scl_o);
+      //send_ack();
+      //@(negedge scl_o);
+      //send_byte(8'b01111111);
+      wait_for_ready();
+    end
+  endtask
+
 
   // Task to test reading
   task test_reading;
@@ -478,7 +531,7 @@ module i2c_master_tb;
       s_axis_data_tdata  = 8'b10101111;
       s_axis_data_tvalid = 1;
       i2c_start(7'b0000001, 1);
-      repeat (7) @(negedge scl_o);
+      repeat (8) @(negedge scl_o);
       s_axis_cmd_valid = 0;
       send_ack();
       send_byte(8'b01111111);
@@ -486,7 +539,8 @@ module i2c_master_tb;
       s_axis_cmd_valid = 1;
       m_axis_data_tready = 1;
       @(negedge scl_o);
-      if (sda_wire) $fatal(1, "Got NACK from master");
+
+      if (sda_wire) #1000 $fatal(1, "Got NACK from master");
       $display("Received m_axis_data_tdata %d", m_axis_data_tdata);
       if (m_axis_data_tdata != 8'b01111111) $fatal(1, "We didn't get what we sent");
       #(CLK_PERIOD);
@@ -503,14 +557,17 @@ module i2c_master_tb;
   initial begin
     $display("Starting I2C Master test");
     initialize_testbench;
-    test_nack_handling();
     stop_on_idle = 1;
+    device_3.test_i2c_single_reg_writing();
+    test_nack_handling();  //killing time for dev3 it needs time to initialize
+    device_3.test_i2c_single_reg_writing();
+    //test_valid_weird();
     test_writing();
+
     #1000;  //stopping
 
     test_reading();
     wait_for_ready();
-    device_3.test_i2c_single_reg_writing();
     device_3.test_i2c_single_reg_reading();
     #1000;  //stopping
     //we are always ready
@@ -518,6 +575,7 @@ module i2c_master_tb;
     device_4.test_write_to_i2c_slave();
     device_4.test_read_from_i2c_slave();
     // test_bus_release();
+
     #1000;
     $finish;
   end
