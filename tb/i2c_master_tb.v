@@ -108,7 +108,7 @@ module i2c_master_tb;
       task test_i2c_single_reg_writing;
         begin
           $display("Testing i2c_single_reg writing");
-          wait_for_ready();
+          //wait_for_ready();
           i2c_start(7'h70, 0);
           s_axis_data_tdata  = 8'd55;
           s_axis_data_tvalid = 1;
@@ -501,9 +501,9 @@ module i2c_master_tb;
     end
   endtask
   // Task to test writing
-  task test_valid_weird;
+  task test_write_weird;
     begin
-      $display("Testing something.");
+      $display("Testing something write weird.");
       i2c_start(7'h70, 0);
       $display("send address?");
       @(posedge s_axis_data_tready);
@@ -518,6 +518,32 @@ module i2c_master_tb;
       s_axis_data_tvalid = 1;
       wait_for_success;
       $display("success %b", device_3.data_out_3);
+      #1000;
+      stop_on_idle = 1;
+
+      //repeat (7) @(negedge scl_o);
+      //send_ack();
+      //@(negedge scl_o);
+      //send_byte(8'b01111111);
+      wait_for_ready();
+    end
+  endtask
+
+  task test_read_weird;
+    begin
+      stop_on_idle = 0;
+      $display("Testing something read weird.");
+      i2c_start(7'h70, 1);
+      m_axis_data_tready = 1;
+      wait_for_success;
+      m_axis_data_tready = 0;
+      $display("success %b", m_axis_data_tdata);
+      //wait 1000 cycles
+      #1000;
+      s_axis_cmd_valid   = 1;
+      m_axis_data_tready = 1;
+      wait_for_success;
+      $display("success %b", m_axis_data_tdata);
       #1000;
       stop_on_idle = 1;
 
@@ -561,16 +587,17 @@ module i2c_master_tb;
   endtask
   // Task to test writing to i2c_slave
   initial begin
-    /*new goal: send 1, then decide wether to stop or send 2. both options
+    /*new goal: read 1, then decide wether to stop or read 2. both options
     * must be allowed*/
     $display("Starting I2C Master test");
     initialize_testbench;
     stop_on_idle = 1;
     device_3.test_i2c_single_reg_writing();
     test_nack_handling();  //killing time for dev3 it needs time to initialize
+    test_read_weird();
     device_3.test_i2c_single_reg_writing();
     stop_on_idle = 0;
-    test_valid_weird();
+    test_write_weird();
     test_writing();
 
     #1000;  //stopping
