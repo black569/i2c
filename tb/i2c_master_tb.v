@@ -58,23 +58,23 @@ module i2c_master_tb;
   reg sda2 = 1;
   reg scl2 = 1;
 
-task wait_for_success;
-  reg continue_waiting;
-  begin
-    continue_waiting = 1;
-    while (continue_waiting) begin
-      @(posedge missed_ack or posedge value_has_been_written or posedge m_axis_data_tvalid or posedge s_axis_cmd_stop);
-      if (missed_ack) begin
-        s_axis_data_tvalid = 1;
-        $display("missed ack detected we retry happily?");
-      end else if (value_has_been_written | m_axis_data_tvalid | s_axis_cmd_stop) begin
-        s_axis_data_tvalid = 0;
-        s_axis_cmd_valid   = 0;
-        continue_waiting = 0;
+  task wait_for_success;
+    reg continue_waiting;
+    begin
+      continue_waiting = 1;
+      while (continue_waiting) begin
+        @(posedge missed_ack or posedge value_has_been_written or posedge m_axis_data_tvalid or posedge s_axis_cmd_stop);
+        if (missed_ack) begin
+          s_axis_data_tvalid = 1;
+          $display("missed ack detected we retry happily?");
+        end else if (value_has_been_written | m_axis_data_tvalid | s_axis_cmd_stop) begin
+          s_axis_data_tvalid = 0;
+          s_axis_cmd_valid   = 0;
+          continue_waiting   = 0;
+        end
       end
     end
-  end
-endtask
+  endtask
   // Generate block for Device 3
   generate
     if (ENABLE_DEVICE_3) begin : device_3
@@ -509,12 +509,18 @@ endtask
       @(posedge s_axis_data_tready);
       s_axis_data_tdata  = 8'b10101111;
       s_axis_data_tvalid = 1;
-      @(negedge s_axis_data_tready)
-      //repeat (2) @(posedge clk);
-      s_axis_data_tvalid = 0;
-      $display("if setting valid false it will not work?");
-      @(posedge value_has_been_written);
+      wait_for_success;
       $display("success %b", device_3.data_out_3);
+      //wait 1000 cycles
+      #1000;
+      s_axis_cmd_valid   = 1;
+      s_axis_data_tdata  = 8'd2;
+      s_axis_data_tvalid = 1;
+      wait_for_success;
+      $display("success %b", device_3.data_out_3);
+      #1000;
+      stop_on_idle = 1;
+
       //repeat (7) @(negedge scl_o);
       //send_ack();
       //@(negedge scl_o);
@@ -555,13 +561,16 @@ endtask
   endtask
   // Task to test writing to i2c_slave
   initial begin
+    /*new goal: send 1, then decide wether to stop or send 2. both options
+    * must be allowed*/
     $display("Starting I2C Master test");
     initialize_testbench;
     stop_on_idle = 1;
     device_3.test_i2c_single_reg_writing();
     test_nack_handling();  //killing time for dev3 it needs time to initialize
     device_3.test_i2c_single_reg_writing();
-    //test_valid_weird();
+    stop_on_idle = 0;
+    test_valid_weird();
     test_writing();
 
     #1000;  //stopping
