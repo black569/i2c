@@ -177,39 +177,39 @@ I/O pin.  This would prevent devices from stretching the clock period.
     STATE_READ_2 = 5'd6,
     STATE_READ_3 = 5'd7;
 
-  reg [4:0] state_reg = STATE_IDLE, state_next;
+  reg [4:0] state_reg = STATE_IDLE, state_next = STATE_IDLE;
 
-  reg [6:0] addr_reg = 7'd0, addr_next;
-  reg [7:0] data_reg = 8'd0, data_next;
-  reg data_valid_reg = 1'b0, data_valid_next;
-  reg data_out_reg_valid_reg = 1'b0, data_out_reg_valid_next;
-  reg last_reg = 1'b0, last_next;
+  reg [6:0] addr_reg = 7'd0, addr_next = 7'd0;
+  reg [7:0] data_reg = 8'd0, data_next = 8'd0;
+  reg data_valid_reg = 1'b0, data_valid_next = 1'b0;
+  reg data_out_reg_valid_reg = 1'b0, data_out_reg_valid_next = 1'b0;
+  reg last_reg = 1'b0, last_next = 1'b0;
 
-  reg mode_read_reg = 1'b0, mode_read_next;
+  reg mode_read_reg = 1'b0, mode_read_next = 1'b0;
 
-  reg [3:0] bit_count_reg = 4'd0, bit_count_next;
+  reg [3:0] bit_count_reg = 4'd0, bit_count_next = 4'd0;
 
-  reg s_axis_data_tready_reg = 1'b0, s_axis_data_tready_next;
+  reg s_axis_data_tready_reg = 1'b0, s_axis_data_tready_next = 1'b0;
 
-  reg [7:0] m_axis_data_tdata_reg = 8'd0, m_axis_data_tdata_next;
-  reg m_axis_data_tvalid_reg = 1'b0, m_axis_data_tvalid_next;
-  reg m_axis_data_tlast_reg = 1'b0, m_axis_data_tlast_next;
+  reg [7:0] m_axis_data_tdata_reg = 8'd0, m_axis_data_tdata_next = 8'd0;
+  reg m_axis_data_tvalid_reg = 1'b0, m_axis_data_tvalid_next = 1'b0;
+  reg m_axis_data_tlast_reg = 1'b0, m_axis_data_tlast_next = 1'b0;
 
-  reg [FILTER_LEN-1:0] scl_i_filter = {FILTER_LEN{1'b1}};
-  reg [FILTER_LEN-1:0] sda_i_filter = {FILTER_LEN{1'b1}};
+  reg [FILTER_LEN-1:0] scl_i_filter = {FILTER_LEN{1'b1}}, scl_i_filter_next = {FILTER_LEN{1'b1}};
+  reg [FILTER_LEN-1:0] sda_i_filter = {FILTER_LEN{1'b1}}, sda_i_filter_next = {FILTER_LEN{1'b1}};
 
-  reg scl_i_reg = 1'b1;
-  reg sda_i_reg = 1'b1;
+  reg scl_i_reg = 1'b1, scl_i_next = 1'b1;
+  reg sda_i_reg = 1'b1, sda_i_next = 1'b1;
 
-  reg scl_o_reg = 1'b1, scl_o_next = 1;
-  reg sda_o_reg = 1'b1, sda_o_next = 1;
+  reg scl_o_reg = 1'b1, scl_o_next = 1'b1;
+  reg sda_o_reg = 1'b1, sda_o_next = 1'b1;
 
-  reg last_scl_i_reg = 1'b1;
-  reg last_sda_i_reg = 1'b1;
+  reg last_scl_i_reg = 1'b1, last_scl_i_next = 1'b1;
+  reg last_sda_i_reg = 1'b1, last_sda_i_next = 1'b1;
 
-  reg busy_reg = 1'b0;
-  reg bus_active_reg = 1'b0;
-  reg bus_addressed_reg = 1'b0, bus_addressed_next;
+  reg busy_reg = 1'b0, busy_next = 1'b0;
+  reg bus_active_reg = 1'b0, bus_active_next = 1'b0;
+  reg bus_addressed_reg = 1'b0, bus_addressed_next = 1'b0;
 
   // Signal declarations
   reg scl_posedge;
