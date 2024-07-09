@@ -66,25 +66,25 @@ module i2c_single_reg #(
     STATE_READ_2 = 5'd6,
     STATE_READ_3 = 5'd7;
 
-  reg [4:0] state_reg;
+  reg [4:0] state_reg = STATE_IDLE;
 
-  reg [7:0] data_reg;
-  reg [7:0] shift_reg;
+  reg [7:0] data_reg = 8'd0;
+  reg [7:0] shift_reg = 8'd0;
 
-  reg mode_read_reg;
+  reg mode_read_reg = 1'b0;
 
-  reg [3:0] bit_count_reg;
+  reg [3:0] bit_count_reg = 4'd0;
 
-  reg [FILTER_LEN-1:0] scl_i_filter_reg;
-  reg [FILTER_LEN-1:0] sda_i_filter_reg;
+  reg [FILTER_LEN-1:0] scl_i_filter_reg = {FILTER_LEN{1'b0}};
+  reg [FILTER_LEN-1:0] sda_i_filter_reg = {FILTER_LEN{1'b0}};
 
-  reg scl_i_reg;
-  reg sda_i_reg;
+  reg scl_i_reg = 1'b0;
+  reg sda_i_reg = 1'b0;
 
-  reg sda_o_reg;
+  reg sda_o_reg = 1'b1;
 
-  reg last_scl_i_reg;
-  reg last_sda_i_reg;
+  reg last_scl_i_reg = 1'b0;
+  reg last_sda_i_reg = 1'b0;
 
   assign scl_o = 1'b1;
   assign scl_t = 1'b1;
