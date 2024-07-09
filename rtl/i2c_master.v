@@ -654,7 +654,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
   );
 
 
-  always @(posedge clk or negedge rst) begin
+  always @(posedge clk or posedge rst) begin
     if (rst) begin
       state_reg <= STATE_IDLE;
       s_axis_cmd_ready_reg <= 1'b0;
