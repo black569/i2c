@@ -315,7 +315,7 @@ module i2c_phy (
   end
 
 
-  always @(posedge clk or negedge rst) begin
+  always @(posedge clk or posedge rst) begin
 
     if (rst) begin
       phy_rx_data_reg <= 1'b0;
