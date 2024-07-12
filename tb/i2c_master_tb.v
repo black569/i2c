@@ -88,7 +88,8 @@ module i2c_master_tb;
 
       i2c_single_reg #(
           .FILTER_LEN(4),
-          .DEV_ADDR  (7'h70)
+        .DEV_ADDR  (7'h70),
+        .DEBUG(1)
       ) i2c_reg (
           .clk(clk),
           .rst(rst),
