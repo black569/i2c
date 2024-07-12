@@ -33,7 +33,8 @@ THE SOFTWARE.
  */
 module i2c_single_reg #(
     parameter FILTER_LEN = 4,
-    parameter DEV_ADDR   = 7'h70
+    parameter DEV_ADDR   = 7'h70,
+    parameter DEBUG = 0
 ) (
     input wire clk,
     input wire rst,
@@ -137,7 +138,10 @@ module i2c_single_reg #(
               end else begin
                 // check address
                 mode_read_reg <= sda_i_reg;
+                  if(DEBUG) 
+                      $display("i2c single reg: received address %h",shift_reg[6:0]);
                 if (shift_reg[6:0] == DEV_ADDR) begin
+                  
                   // it's a match, send ACK
                   state_reg <= STATE_ACK;
                 end else begin
@@ -186,6 +190,7 @@ module i2c_single_reg #(
                 state_reg <= STATE_WRITE_2;
               end else begin
                 data_reg  <= {shift_reg[6:0], sda_i_reg};
+                  if (DEBUG) $display("i2c single reg: Received data: %h",{shift_reg[6:0], sda_i_reg});
                 state_reg <= STATE_ACK;
               end
             end else begin
@@ -234,7 +239,10 @@ module i2c_single_reg #(
               state_reg <= STATE_READ_3;
             end
           end
-          default: $display("default output of i2c_single_reg triggered atm this does nothing");
+          default: begin 
+              if (DEBUG)
+              $display("default output of i2c_single_reg triggered atm this does nothing");
+          end
         endcase
       end
 
