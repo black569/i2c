@@ -31,7 +31,7 @@ THE SOFTWARE.
  */
 module i2c_master (
     input wire clk,
-    input wire rst,
+    input wire rst_n,
 
     /*
      * Host interface
@@ -633,7 +633,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
 
   i2c_phy phy_instance (
       .clk(clk),
-      .rst(rst),
+      .rst_n,
       .phy_start_bit(phy_start_bit),
       .phy_stop_bit(phy_stop_bit),
       .phy_write_bit(phy_write_bit),
@@ -654,8 +654,8 @@ I/O pin.  This would prevent devices from stretching the clock period.
   );
 
 
-  always @(posedge clk or posedge rst) begin
-    if (rst) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
       state_reg <= STATE_IDLE;
       s_axis_cmd_ready_reg <= 1'b0;
       s_axis_data_tready_reg <= 1'b0;

@@ -7,7 +7,7 @@ module i2c_phy_tb;
 
   // Signals
   reg clk = 0;
-  reg rst = 0;
+  reg rst = 1;
   reg phy_start_bit = 0;
   reg phy_stop_bit = 0;
   reg phy_write_bit = 0;
@@ -62,7 +62,7 @@ module i2c_phy_tb;
   // Instantiate the i2c_phy module
   i2c_phy uut (
       .clk(clk),
-      .rst(rst),
+      .rst(rst_n),
       .phy_start_bit(phy_start_bit),
       .phy_stop_bit(phy_stop_bit),
       .phy_write_bit(phy_write_bit),
@@ -83,7 +83,7 @@ module i2c_phy_tb;
   );
   task initialize;
     begin
-      rst = 1;
+      rst = 0;
       phy_start_bit = 0;
       phy_stop_bit = 0;
       phy_write_bit = 0;
@@ -95,9 +95,9 @@ module i2c_phy_tb;
 
   task reset;
     begin
-      rst = 1;
-      #(CLK_PERIOD * 5);
       rst = 0;
+      #(CLK_PERIOD * 5);
+      rst = 1;
       #(CLK_PERIOD * 5);
     end
   endtask

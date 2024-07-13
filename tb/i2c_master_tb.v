@@ -15,6 +15,8 @@ module i2c_master_tb;
 
   reg clk = 0;
   reg rst = 0;
+  wire rst_n;
+  assign rst_n=~rst;
   reg [7:0] current_test = 0;
 
   // I2C master signals
@@ -92,7 +94,7 @@ module i2c_master_tb;
         .DEBUG(1)
       ) i2c_reg (
           .clk(clk),
-          .rst(rst),
+          .rst_n,
           .scl_i(scl_wire),
           .scl_o(scl_o_3),
           .scl_t(scl_t_3),
@@ -184,7 +186,7 @@ module i2c_master_tb;
           .FILTER_LEN(4)
       ) i2c_slave_inst (
           .clk(clk),
-          .rst(rst),
+          .rst_n,
           .release_bus(release_bus_4),
           .s_axis_data_tdata(s_axis_data_tdata_4),
           .s_axis_data_tvalid(s_axis_data_tvalid_4),
@@ -363,7 +365,7 @@ module i2c_master_tb;
 
   i2c_master UUT (
       .clk(clk),
-      .rst(rst),
+      .rst_n,
       .s_axis_cmd_address(s_axis_cmd_address),
       .s_axis_cmd_start(s_axis_cmd_start),
       .s_axis_cmd_read(s_axis_cmd_read),

@@ -33,7 +33,7 @@ module i2c_slave #(
     parameter FILTER_LEN = 4
 ) (
     input wire clk,
-    input wire rst,
+    input wire rst_n,
 
     /*
      * Host interface
@@ -446,8 +446,8 @@ I/O pin.  This would prevent devices from stretching the clock period.
     end
   end
 
-  always @(posedge clk or negedge rst) begin
-    if (rst) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
       state_reg <= STATE_IDLE;
       s_axis_data_tready_reg <= 1'b0;
       m_axis_data_tvalid_reg <= 1'b0;

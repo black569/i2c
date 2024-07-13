@@ -2,7 +2,7 @@
 `timescale 1ns / 1ps
 module i2c_phy (
     input wire clk,
-    input wire rst,
+    input wire rst_n,
 
     // Control signals
     input wire phy_start_bit,
@@ -315,9 +315,9 @@ module i2c_phy (
   end
 
 
-  always @(posedge clk or posedge rst) begin
+  always @(posedge clk or negedge rst_n) begin
 
-    if (rst) begin
+    if (~rst_n) begin
       phy_rx_data_reg <= 1'b0;
       phy_state_reg <= PHY_STATE_IDLE;
       delay_reg <= 17'd0;

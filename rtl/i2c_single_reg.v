@@ -37,7 +37,7 @@ module i2c_single_reg #(
     parameter DEBUG = 0
 ) (
     input wire clk,
-    input wire rst,
+    input wire rst_n,
 
     /*
      * I2C interface
@@ -102,8 +102,8 @@ module i2c_single_reg #(
   wire start_bit = sda_negedge && scl_i_reg;
   wire stop_bit = sda_posedge && scl_i_reg;
 
-  always @(posedge clk or negedge rst) begin
-    if (rst) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
       state_reg <= STATE_IDLE;
       sda_o_reg <= 1'b1;
     end else begin
