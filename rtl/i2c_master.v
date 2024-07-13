@@ -635,7 +635,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
 
   i2c_phy phy_instance (
       .clk(clk),
-      .rst_n,
+      .rst_n(rst_n),
       .phy_start_bit(phy_start_bit),
       .phy_stop_bit(phy_stop_bit),
       .phy_write_bit(phy_write_bit),
