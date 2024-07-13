@@ -29,7 +29,9 @@ THE SOFTWARE.
 /*
  * I2C master
  */
-module i2c_master (
+module i2c_master #(
+    parameter DEBUG = 0
+)(
     input wire clk,
     input wire rst_n,
 
@@ -394,7 +396,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
             end else if (s_axis_cmd_stop && !(s_axis_cmd_read || s_axis_cmd_write || s_axis_cmd_write_multiple)) begin
               // stop command
               phy_stop_bit = 1'b1;
-              $display("from active write to idle? why?");
+              if (DEBUG) $display("from active write to idle? why?");
               state_next = STATE_IDLE;
             end else begin
               // invalid or unspecified - ignore
@@ -433,7 +435,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
                 // address or mode mismatch or forced start - repeated start
 
                 // write nack for previous read
-                $display("mode mismatch forced restart, write nack");
+                if (DEBUG) $display("mode mismatch forced restart, write nack");
                 phy_write_bit = 1'b1;
                 phy_tx_data = 1'b1;
                 // repeated start bit
@@ -441,7 +443,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
               end else begin
                 // address and mode match
 
-                $display("sending ack and continue with next read");
+                if (DEBUG) play("sending ack and continue with next read");
                 // write ack for previous read
                 phy_write_bit = 1'b1;
                 phy_tx_data = 1'b0;
@@ -459,7 +461,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
               // send stop bit
               state_next = STATE_STOP;
             end else begin
-              $display("active read: invalid or unspecified - ignore.. ?");
+              if (DEBUG) $display("active read: invalid or unspecified - ignore.. ?");
               // invalid or unspecified - ignore
               state_next = STATE_ACTIVE_READ;
             end
@@ -471,7 +473,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
               phy_write_bit = 1'b1;
               phy_tx_data   = 1'b1;
               // send stop bit
-              $display("got last bit and received, so stopping");
+              if (DEBUG) $display("got last bit and received, so stopping");
 
               state_next = STATE_STOP;
             end else begin
@@ -525,10 +527,10 @@ I/O pin.  This would prevent devices from stretching the clock period.
           // read ack bit
           missed_ack_next = phy_rx_data_reg;
           if (missed_ack_next) begin
-            $display("got NACK");
+            if (DEBUG) $display("got NACK");
             state_next = STATE_STOP;
           end else begin
-            $display("got ACK");
+            if (DEBUG) $display("got ACK");
 
             if (mode_read_reg) begin
               // start read
@@ -575,10 +577,10 @@ I/O pin.  This would prevent devices from stretching the clock period.
           // read ack bit
           missed_ack_next = phy_rx_data_reg;
           if (missed_ack_next) begin
-            $display("got NACK on write");
+            if (DEBUG) $display("got NACK on write");
             state_next = STATE_STOP;
           end else begin
-            $display("got ACK on write %d", $time);
+            if (DEBUG) $display("got ACK on write %d", $time);
 
             value_has_been_written_reg = 1;  //only if successful!
 
@@ -626,7 +628,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
           phy_stop_bit = 1'b1;
           state_next   = STATE_IDLE;
         end
-        default: $display("I don't think case default should get triggered");
+        default: if (DEBUG) $display("I don't think case default should get triggered");
       endcase
     end
   end
