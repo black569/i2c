@@ -148,7 +148,7 @@ module i2c_phy_tb;
       read_operation;
       wait (phy_state_reg == 5'd1);  // Wait for PHY_STATE_ACTIVE
       sda2 = 1;  //pull sda2 back up
-      if (phy_rx_data_reg != 0) $finish("Expecting ACK but found NACK: %d ", phy_rx_data_reg);
+      if (phy_rx_data_reg != 0) $finish(1,"Expecting ACK but found NACK: %d ", phy_rx_data_reg);
     end
   endtask
 
