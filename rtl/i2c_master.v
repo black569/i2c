@@ -443,7 +443,7 @@ I/O pin.  This would prevent devices from stretching the clock period.
               end else begin
                 // address and mode match
 
-                if (DEBUG) play("sending ack and continue with next read");
+                if (DEBUG) $display("sending ack and continue with next read");
                 // write ack for previous read
                 phy_write_bit = 1'b1;
                 phy_tx_data = 1'b0;
