@@ -31,7 +31,7 @@ THE SOFTWARE.
  */
 module i2c_master #(
     parameter DEBUG = 0
-)(
+) (
     input wire clk,
     input wire rst_n,
 
